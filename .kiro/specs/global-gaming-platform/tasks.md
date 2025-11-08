@@ -340,7 +340,7 @@
   - Build operational dashboards for real-time system visibility
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 10.1 Metrics Collection Setup
+- [-] 10.1 Metrics Collection Setup
   - Implement custom CloudWatch metrics for game-specific events and business KPIs
   - Configure X-Ray tracing for distributed request tracking and user journey analysis
   - Create log aggregation pipeline with Kinesis and S3 for real-time analytics
