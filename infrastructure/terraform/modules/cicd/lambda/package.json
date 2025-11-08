@@ -1,0 +1,12 @@
+{
+  "name": "cicd-lambda-functions",
+  "version": "1.0.0",
+  "description": "Lambda functions for CI/CD automation",
+  "main": "auto_rollback.js",
+  "dependencies": {
+    "aws-sdk": "^2.1400.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

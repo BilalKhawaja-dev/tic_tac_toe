@@ -1,0 +1,29 @@
+{
+  "name": "@gaming-platform/config-manager",
+  "version": "1.0.0",
+  "description": "Configuration management SDK for AWS AppConfig integration",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "keywords": [
+    "aws",
+    "appconfig",
+    "configuration",
+    "feature-flags"
+  ],
+  "author": "Global Gaming Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.1345.0"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "eslint": "^8.37.0"
+  },
+  "peerDependencies": {
+    "aws-sdk": "^2.1000.0"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "cognito-user-migration-trigger",
+  "version": "1.0.0",
+  "description": "Cognito user migration Lambda trigger",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1490.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

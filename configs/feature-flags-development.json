@@ -1,0 +1,72 @@
+{
+  "flags": {
+    "enableSocialLogin": {
+      "name": "enableSocialLogin",
+      "enabled": true,
+      "variants": {
+        "google": { "enabled": true },
+        "facebook": { "enabled": true },
+        "twitter": { "enabled": false }
+      }
+    },
+    "enableLeaderboard": {
+      "name": "enableLeaderboard",
+      "enabled": true
+    },
+    "enableRealTimeUpdates": {
+      "name": "enableRealTimeUpdates",
+      "enabled": true
+    },
+    "enableAdvancedAnalytics": {
+      "name": "enableAdvancedAnalytics",
+      "enabled": true
+    },
+    "enableBetaFeatures": {
+      "name": "enableBetaFeatures",
+      "enabled": true
+    },
+    "enableNewGameEngine": {
+      "name": "enableNewGameEngine",
+      "enabled": false
+    },
+    "enableEnhancedSecurity": {
+      "name": "enableEnhancedSecurity",
+      "enabled": true
+    }
+  },
+  "values": {
+    "enableSocialLogin": { "enabled": true },
+    "enableLeaderboard": { "enabled": true },
+    "enableRealTimeUpdates": { "enabled": true },
+    "enableAdvancedAnalytics": { "enabled": true },
+    "enableBetaFeatures": { "enabled": true },
+    "enableNewGameEngine": { "enabled": false },
+    "enableEnhancedSecurity": { "enabled": true }
+  },
+  "experiments": {
+    "newLeaderboardUI": {
+      "enabled": true,
+      "variants": {
+        "control": {},
+        "variant_a": { "theme": "dark" },
+        "variant_b": { "theme": "light", "animations": true }
+      },
+      "trafficAllocation": {
+        "control": 50,
+        "variant_a": 25,
+        "variant_b": 25
+      },
+      "targetingRules": [
+        {
+          "attribute": "user.region",
+          "operator": "in",
+          "value": ["eu-west-2", "us-east-1"]
+        }
+      ],
+      "metrics": ["conversion_rate", "engagement_time"],
+      "startDate": "2025-11-06T00:00:00Z",
+      "endDate": "2025-12-06T00:00:00Z"
+    }
+  },
+  "version": "1.0.0"
+}

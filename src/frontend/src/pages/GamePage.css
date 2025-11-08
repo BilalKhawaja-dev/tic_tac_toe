@@ -1,0 +1,64 @@
+/* Game Page Styles */
+
+.game-page {
+  min-height: calc(100vh - 200px);
+  padding: 2rem 0;
+}
+
+.game-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.game-header h1 {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.game-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+}
+
+.game-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.game-message {
+  text-align: center;
+  padding: 1rem;
+  margin-top: 2rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.game-message p {
+  font-size: 1.125rem;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .game-header h1 {
+    font-size: 2rem;
+  }
+
+  .game-subtitle {
+    font-size: 1rem;
+  }
+
+  .game-controls {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0 1rem;
+  }
+
+  .game-controls button {
+    width: 100%;
+  }
+}

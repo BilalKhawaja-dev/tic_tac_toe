@@ -1,0 +1,60 @@
+version: 0.2
+
+# AWS CodeBuild specification for building and testing the application
+# This buildspec handles multi-service builds with Docker image creation
+
+phases:
+  pre_build:
+    commands:
+      - echo "Pre-build phase started on `date`"
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - echo "Image tag is $IMAGE_TAG"
+      
+  build:
+    commands:
+      - echo "Build phase started on `date`"
+      - echo "Building Docker image for $SERVICE_NAME..."
+      - |
+        if [ "$SERVICE_NAME" = "game-engine" ]; then
+          docker build -t $REPOSITORY_URI:latest -f src/game-engine/Dockerfile src/game-engine
+        elif [ "$SERVICE_NAME" = "auth-service" ]; then
+          docker build -t $REPOSITORY_URI:latest -f src/auth-service/Dockerfile src/auth-service
+        elif [ "$SERVICE_NAME" = "leaderboard-service" ]; then
+          docker build -t $REPOSITORY_URI:latest -f src/leaderboard-service/Dockerfile src/leaderboard-service
+        elif [ "$SERVICE_NAME" = "frontend" ]; then
+          docker build -t $REPOSITORY_URI:latest -f src/frontend/Dockerfile src/frontend
+        else
+          echo "Unknown service: $SERVICE_NAME"
+          exit 1
+        fi
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+      - echo "Running tests..."
+      - |
+        if [ "$SERVICE_NAME" != "frontend" ]; then
+          docker run --rm $REPOSITORY_URI:latest npm test
+        fi
+      
+  post_build:
+    commands:
+      - echo "Post-build phase started on `date`"
+      - echo "Pushing Docker images to ECR..."
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo "Writing image definitions file..."
+      - printf '[{"name":"%s","imageUri":"%s"}]' $SERVICE_NAME $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - echo "Build completed successfully on `date`"
+
+artifacts:
+  files:
+    - imagedefinitions.json
+    - appspec.yml
+    - taskdef.json
+
+cache:
+  paths:
+    - '/root/.npm/**/*'
+    - '/root/.cache/**/*'

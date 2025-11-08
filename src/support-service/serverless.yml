@@ -1,0 +1,313 @@
+service: support-service
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${opt:region, 'eu-west-2'}
+  stage: ${opt:stage, 'dev'}
+  memorySize: 512
+  timeout: 30
+  
+  environment:
+    TICKETS_TABLE: ${self:custom.ticketsTable}
+    FAQ_TABLE: ${self:custom.faqTable}
+    TICKET_QUEUE_URL: !Ref TicketQueue
+    TICKET_TOPIC_ARN: !Ref TicketTopic
+    
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:GetItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource:
+            - !GetAtt TicketsTable.Arn
+            - !Sub '${TicketsTable.Arn}/index/*'
+            - !GetAtt FAQTable.Arn
+            - !Sub '${FAQTable.Arn}/index/*'
+        - Effect: Allow
+          Action:
+            - sqs:SendMessage
+            - sqs:ReceiveMessage
+            - sqs:DeleteMessage
+            - sqs:GetQueueAttributes
+          Resource: !GetAtt TicketQueue.Arn
+        - Effect: Allow
+          Action:
+            - sns:Publish
+          Resource: !Ref TicketTopic
+
+custom:
+  ticketsTable: ${self:service}-tickets-${self:provider.stage}
+  faqTable: ${self:service}-faq-${self:provider.stage}
+
+functions:
+  createTicket:
+    handler: src/handlers/ticketHandler.createTicket
+    events:
+      - http:
+          path: /tickets
+          method: post
+          cors: true
+          
+  getTicket:
+    handler: src/handlers/ticketHandler.getTicket
+    events:
+      - http:
+          path: /tickets/{ticketId}
+          method: get
+          cors: true
+          
+  updateTicket:
+    handler: src/handlers/ticketHandler.updateTicket
+    events:
+      - http:
+          path: /tickets/{ticketId}
+          method: put
+          cors: true
+          
+  listTickets:
+    handler: src/handlers/ticketHandler.listTickets
+    events:
+      - http:
+          path: /tickets
+          method: get
+          cors: true
+          
+  getUserTickets:
+    handler: src/handlers/ticketHandler.getUserTickets
+    events:
+      - http:
+          path: /users/{userId}/tickets
+          method: get
+          cors: true
+          
+  processTickets:
+    handler: src/handlers/ticketProcessor.handler
+    events:
+      - sqs:
+          arn: !GetAtt TicketQueue.Arn
+          batchSize: 10
+          
+  slaChecker:
+    handler: src/handlers/ticketProcessor.slaChecker
+    events:
+      - schedule:
+          rate: rate(15 minutes)
+          description: 'Check SLA compliance for all open tickets'
+          
+  # FAQ Functions
+  createFAQ:
+    handler: src/handlers/faqHandler.createFAQ
+    events:
+      - http:
+          path: /faq
+          method: post
+          cors: true
+          
+  getFAQ:
+    handler: src/handlers/faqHandler.getFAQ
+    events:
+      - http:
+          path: /faq/{faqId}
+          method: get
+          cors: true
+          
+  updateFAQ:
+    handler: src/handlers/faqHandler.updateFAQ
+    events:
+      - http:
+          path: /faq/{faqId}
+          method: put
+          cors: true
+          
+  deleteFAQ:
+    handler: src/handlers/faqHandler.deleteFAQ
+    events:
+      - http:
+          path: /faq/{faqId}
+          method: delete
+          cors: true
+          
+  searchFAQs:
+    handler: src/handlers/faqHandler.searchFAQs
+    events:
+      - http:
+          path: /faq/search
+          method: get
+          cors: true
+          
+  listFAQs:
+    handler: src/handlers/faqHandler.listFAQs
+    events:
+      - http:
+          path: /faq
+          method: get
+          cors: true
+          
+  rateFAQ:
+    handler: src/handlers/faqHandler.rateFAQ
+    events:
+      - http:
+          path: /faq/{faqId}/rate
+          method: post
+          cors: true
+          
+  suggestFAQs:
+    handler: src/handlers/faqHandler.suggestFAQs
+    events:
+      - http:
+          path: /faq/suggest
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    TicketsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.ticketsTable}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: ticketId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: N
+          - AttributeName: status
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ticketId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: UserIdIndex
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: StatusIndex
+            KeySchema:
+              - AttributeName: status
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        Tags:
+          - Key: Service
+            Value: support-service
+          - Key: Environment
+            Value: ${self:provider.stage}
+            
+    TicketQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-queue-${self:provider.stage}
+        VisibilityTimeout: 180
+        MessageRetentionPeriod: 1209600 # 14 days
+        RedrivePolicy:
+          deadLetterTargetArn: !GetAtt TicketDLQ.Arn
+          maxReceiveCount: 3
+        Tags:
+          - Key: Service
+            Value: support-service
+          - Key: Environment
+            Value: ${self:provider.stage}
+            
+    TicketDLQ:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-dlq-${self:provider.stage}
+        MessageRetentionPeriod: 1209600 # 14 days
+        
+    TicketTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:service}-notifications-${self:provider.stage}
+        DisplayName: Support Ticket Notifications
+        Tags:
+          - Key: Service
+            Value: support-service
+          - Key: Environment
+            Value: ${self:provider.stage}
+            
+    TicketTopicPolicy:
+      Type: AWS::SNS::TopicPolicy
+      Properties:
+        Topics:
+          - !Ref TicketTopic
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: lambda.amazonaws.com
+              Action:
+                - SNS:Publish
+              Resource: !Ref TicketTopic
+              
+    FAQTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.faqTable}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: faqId
+            AttributeType: S
+          - AttributeName: category
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: N
+        KeySchema:
+          - AttributeName: faqId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: CategoryIndex
+            KeySchema:
+              - AttributeName: category
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        PointInTimeRecoverySpecification:
+          PointInTimeRecoveryEnabled: true
+        Tags:
+          - Key: Service
+            Value: support-service
+          - Key: Environment
+            Value: ${self:provider.stage}
+
+  Outputs:
+    TicketsTableName:
+      Description: DynamoDB table for support tickets
+      Value: !Ref TicketsTable
+      Export:
+        Name: ${self:service}-tickets-table-${self:provider.stage}
+        
+    TicketQueueUrl:
+      Description: SQS queue URL for ticket processing
+      Value: !Ref TicketQueue
+      Export:
+        Name: ${self:service}-queue-url-${self:provider.stage}
+        
+    TicketTopicArn:
+      Description: SNS topic ARN for ticket notifications
+      Value: !Ref TicketTopic
+      Export:
+        Name: ${self:service}-topic-arn-${self:provider.stage}

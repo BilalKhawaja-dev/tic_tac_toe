@@ -1,0 +1,87 @@
+/* WebSocket Status Indicator */
+
+.websocket-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.status-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.status-text {
+  color: var(--text-primary);
+}
+
+.reconnect-btn {
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* Status-specific styles */
+.status-connected {
+  background-color: rgba(0, 255, 65, 0.1);
+  border: 1px solid var(--success);
+}
+
+.status-connecting,
+.status-reconnecting {
+  background-color: rgba(255, 170, 0, 0.1);
+  border: 1px solid var(--warning);
+}
+
+.status-connecting .status-icon,
+.status-reconnecting .status-icon {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-disconnected {
+  background-color: rgba(136, 136, 136, 0.1);
+  border: 1px solid var(--text-dim);
+}
+
+.status-error,
+.status-failed {
+  background-color: rgba(255, 0, 51, 0.1);
+  border: 1px solid var(--error);
+}
+
+.status-unknown {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .websocket-status {
+    font-size: 0.8125rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .status-icon {
+    font-size: 0.875rem;
+  }
+
+  .reconnect-btn {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}

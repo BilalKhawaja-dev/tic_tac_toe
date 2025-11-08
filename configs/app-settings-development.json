@@ -1,0 +1,58 @@
+{
+  "database": {
+    "connectionTimeout": 5000,
+    "maxConnections": 50,
+    "queryTimeout": 10000,
+    "retryAttempts": 3,
+    "poolSize": 20
+  },
+  "api": {
+    "rateLimitPerMinute": 1000,
+    "timeoutMs": 5000,
+    "maxRequestSize": "10mb",
+    "corsOrigins": ["http://localhost:3000", "https://dev.tic-tac-toe-game.com"],
+    "enableCompression": true
+  },
+  "game": {
+    "maxConcurrentGames": 1000,
+    "moveTimeoutSeconds": 120,
+    "maxPlayersPerGame": 2,
+    "gameSessionTTL": 3600,
+    "enableSpectatorMode": false
+  },
+  "monitoring": {
+    "metricsInterval": 60,
+    "enableTracing": true,
+    "logLevel": "debug",
+    "enableDetailedMetrics": true,
+    "samplingRate": 1.0
+  },
+  "security": {
+    "sessionTimeoutMinutes": 1440,
+    "maxLoginAttempts": 5,
+    "passwordMinLength": 8,
+    "enableTwoFactor": false,
+    "jwtExpirationHours": 24
+  },
+  "cache": {
+    "defaultTTL": 300,
+    "leaderboardTTL": 60,
+    "userProfileTTL": 900,
+    "gameStateTTL": 30,
+    "enableCacheWarming": true
+  },
+  "websocket": {
+    "pingInterval": 30000,
+    "pongTimeout": 5000,
+    "maxConnections": 10000,
+    "enableHeartbeat": true,
+    "compressionEnabled": true
+  },
+  "features": {
+    "enableMetrics": true,
+    "enableHealthChecks": true,
+    "enableGracefulShutdown": true,
+    "enableRequestLogging": true,
+    "enableErrorReporting": true
+  }
+}

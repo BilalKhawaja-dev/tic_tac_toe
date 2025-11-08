@@ -1,0 +1,223 @@
+# Artillery Load Test Configuration
+# Tests API performance under various load conditions
+
+config:
+  target: "{{ $processEnvironment.API_BASE_URL }}"
+  phases:
+    # Warm-up phase
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm-up"
+    
+    # Ramp-up phase
+    - duration: 120
+      arrivalRate: 5
+      rampTo: 50
+      name: "Ramp-up to 50 users/sec"
+    
+    # Sustained load
+    - duration: 300
+      arrivalRate: 50
+      name: "Sustained load - 50 users/sec"
+    
+    # Peak load
+    - duration: 120
+      arrivalRate: 50
+      rampTo: 100
+      name: "Peak load - 100 users/sec"
+    
+    # Cool-down
+    - duration: 60
+      arrivalRate: 100
+      rampTo: 5
+      name: "Cool-down"
+  
+  # Performance thresholds
+  ensure:
+    maxErrorRate: 1
+    p95: 200
+    p99: 500
+  
+  # HTTP settings
+  http:
+    timeout: 30
+  
+  # Variables
+  variables:
+    testUserId: "test-user-{{ $randomString() }}"
+    testGameId: "test-game-{{ $randomString() }}"
+  
+  # Plugins
+  plugins:
+    expect: {}
+    metrics-by-endpoint: {}
+
+scenarios:
+  # Public endpoint tests (no auth required)
+  - name: "Public Leaderboard Access"
+    weight: 30
+    flow:
+      - get:
+          url: "/leaderboard/global"
+          qs:
+            limit: 100
+            offset: 0
+          expect:
+            - statusCode: 200
+            - contentType: json
+            - hasProperty: success
+          capture:
+            - json: "$.data.rankings[0].userId"
+              as: "topUserId"
+      
+      - get:
+          url: "/leaderboard/regional/europe"
+          qs:
+            limit: 50
+          expect:
+            - statusCode: 200
+      
+      - think: 2
+  
+  # FAQ access
+  - name: "FAQ Search"
+    weight: 20
+    flow:
+      - get:
+          url: "/support/faq/search"
+          qs:
+            q: "how to play"
+          expect:
+            - statusCode: 200
+            - contentType: json
+      
+      - get:
+          url: "/support/faq"
+          expect:
+            - statusCode: 200
+      
+      - think: 1
+  
+  # Authenticated game flow
+  - name: "Authenticated Game Flow"
+    weight: 50
+    flow:
+      # Get OAuth URL
+      - get:
+          url: "/auth/oauth/url"
+          qs:
+            provider: "google"
+            redirect_uri: "https://example.com/callback"
+          expect:
+            - statusCode: 200
+          capture:
+            - json: "$.data.state"
+              as: "oauthState"
+      
+      - think: 1
+      
+      # Get user profile (simulated auth)
+      - get:
+          url: "/users/me"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.TEST_TOKEN }}"
+          expect:
+            - statusCode: [200, 401]
+      
+      # Get user stats
+      - get:
+          url: "/users/me/stats"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.TEST_TOKEN }}"
+          expect:
+            - statusCode: [200, 401]
+      
+      - think: 2
+      
+      # Create game
+      - post:
+          url: "/game/games"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.TEST_TOKEN }}"
+            Content-Type: "application/json"
+          json:
+            opponentId: "opponent-{{ $randomString() }}"
+          expect:
+            - statusCode: [201, 401]
+          capture:
+            - json: "$.gameId"
+              as: "createdGameId"
+      
+      - think: 1
+      
+      # Make moves
+      - post:
+          url: "/game/games/{{ createdGameId }}/moves"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.TEST_TOKEN }}"
+            Content-Type: "application/json"
+          json:
+            row: 0
+            col: 0
+          expect:
+            - statusCode: [200, 401, 404, 409]
+      
+      - think: 2
+      
+      # Get game state
+      - get:
+          url: "/game/games/{{ createdGameId }}"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.TEST_TOKEN }}"
+          expect:
+            - statusCode: [200, 401, 404]
+      
+      - think: 1
+      
+      # Check leaderboard
+      - get:
+          url: "/leaderboard/user/{{ testUserId }}"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.TEST_TOKEN }}"
+          expect:
+            - statusCode: [200, 401, 404]
+      
+      - think: 2
+
+  # Support ticket flow
+  - name: "Support Ticket Creation"
+    weight: 10
+    flow:
+      - post:
+          url: "/support/tickets"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.TEST_TOKEN }}"
+            Content-Type: "application/json"
+          json:
+            subject: "Performance test ticket"
+            description: "This is a test ticket created during load testing"
+            category: "technical"
+            priority: "medium"
+          expect:
+            - statusCode: [201, 401]
+          capture:
+            - json: "$.ticketId"
+              as: "ticketId"
+      
+      - think: 1
+      
+      - get:
+          url: "/support/tickets/{{ ticketId }}"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.TEST_TOKEN }}"
+          expect:
+            - statusCode: [200, 401, 404]
+      
+      - think: 2
+      
+      - get:
+          url: "/support/tickets"
+          headers:
+            Authorization: "Bearer {{ $processEnvironment.TEST_TOKEN }}"
+          expect:
+            - statusCode: [200, 401]

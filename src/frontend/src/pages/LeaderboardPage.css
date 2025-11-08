@@ -1,0 +1,53 @@
+/* Leaderboard Page Styles */
+
+.leaderboard-page {
+  min-height: calc(100vh - 200px);
+  padding: 2rem 0;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+}
+
+.region-selector {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.region-selector button {
+  min-width: 120px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .page-subtitle {
+    font-size: 1rem;
+  }
+
+  .region-selector {
+    flex-direction: column;
+    padding: 0 1rem;
+  }
+
+  .region-selector button {
+    width: 100%;
+  }
+}

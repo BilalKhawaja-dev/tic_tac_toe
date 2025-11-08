@@ -1,0 +1,169 @@
+/* Support Page Styles */
+
+.support-page {
+  min-height: calc(100vh - 200px);
+  padding: 2rem 0;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+}
+
+.support-info {
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  padding: 1.5rem;
+}
+
+.support-info h3 {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+.support-info ul {
+  list-style: none;
+  padding: 0;
+}
+
+.support-info li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.support-info li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--neon-green);
+}
+
+.support-info a {
+  color: var(--neon-green);
+  text-decoration: underline;
+}
+
+.ticket-success {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1.5rem;
+  background-color: var(--success);
+  color: var(--bg-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  font-weight: bold;
+  animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.ticket-success h2 {
+  color: var(--success);
+  margin-bottom: 1rem;
+}
+
+.ticket-success p {
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+}
+
+.ticket-success strong {
+  color: var(--neon-green);
+}
+
+.response-time {
+  padding: 1rem;
+  background-color: rgba(0, 255, 65, 0.1);
+  border: 1px solid var(--neon-green);
+  border-radius: 8px;
+  margin: 1.5rem 0;
+}
+
+.ticket-success button {
+  margin-top: 1.5rem;
+}
+
+.faq-section {
+  margin-top: 4rem;
+}
+
+.faq-section h2 {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.faq-item {
+  padding: 1.5rem;
+}
+
+.faq-item h4 {
+  color: var(--neon-green);
+  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+}
+
+.faq-item p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .page-subtitle {
+    font-size: 1rem;
+  }
+
+  .support-info,
+  .ticket-success {
+    margin-left: 1rem;
+    margin-right: 1rem;
+  }
+
+  .faq-section h2 {
+    font-size: 1.5rem;
+  }
+
+  .faq-grid {
+    grid-template-columns: 1fr;
+    padding: 0 1rem;
+  }
+}

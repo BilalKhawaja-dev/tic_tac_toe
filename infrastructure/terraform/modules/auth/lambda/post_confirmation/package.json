@@ -1,0 +1,14 @@
+{
+  "name": "cognito-post-confirmation-trigger",
+  "version": "1.0.0",
+  "description": "Cognito post confirmation Lambda trigger for user profile creation",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1490.0",
+    "pg": "^8.11.3",
+    "uuid": "^9.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

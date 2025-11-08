@@ -1,0 +1,1075 @@
+openapi: 3.0.3
+info:
+  title: Global Gaming Platform API
+  description: |
+    Unified API for the Global Gaming Platform - a tic-tac-toe gaming system with social media integration,
+    real-time gameplay, and comprehensive leaderboard functionality.
+    
+    ## Authentication
+    
+    The API supports two authentication methods:
+    
+    1. **JWT Bearer Token** (for user authentication)
+       - Header: `Authorization: Bearer <token>`
+       - Obtained through OAuth social login
+    
+    2. **API Key** (for service-to-service communication)
+       - Header: `x-api-key: <api-key>`
+       - Provided to authorized services
+    
+    ## Rate Limiting
+    
+    - **Authenticated users**: 1000 requests/minute
+    - **Anonymous users**: 100 requests/minute
+    - **Burst capacity**: 2000 requests
+    
+    ## Versioning
+    
+    API versioning is handled through the URL path:
+    - Current version: v1
+    - Format: `/v1/{resource}`
+    
+  version: 1.0.0
+  contact:
+    name: Gaming Platform API Support
+    email: api-support@gaming-platform.com
+  license:
+    name: Proprietary
+    
+servers:
+  - url: https://api.gaming-platform.com/v1
+    description: Production server
+  - url: https://api-staging.gaming-platform.com/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User authentication and profile management
+  - name: Game
+    description: Game creation, moves, and state management
+  - name: Leaderboard
+    description: Global and regional rankings
+  - name: Support
+    description: Support tickets and FAQ
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  # ============================================================================
+  # Authentication Endpoints
+  # ============================================================================
+  
+  /auth/oauth/url:
+    get:
+      tags:
+        - Authentication
+      summary: Get OAuth authorization URL
+      description: Returns the OAuth authorization URL for social media login
+      operationId: getOAuthUrl
+      security: []
+      parameters:
+        - name: provider
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [google, facebook, twitter]
+          description: Social media provider
+        - name: redirect_uri
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+          description: Redirect URI after authentication
+      responses:
+        '200':
+          description: OAuth URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthUrlResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /auth/callback:
+    get:
+      tags:
+        - Authentication
+      summary: OAuth callback handler
+      description: Handles OAuth callback and exchanges code for tokens
+      operationId: handleOAuthCallback
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Authorization code from OAuth provider
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+          description: State parameter for CSRF protection
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Invalidates the current user session
+      operationId: logout
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /users/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user profile
+      description: Returns the profile of the authenticated user
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    put:
+      tags:
+        - Authentication
+      summary: Update user profile
+      description: Updates the authenticated user's profile
+      operationId: updateCurrentUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /users/me/stats:
+    get:
+      tags:
+        - Authentication
+      summary: Get user statistics
+      description: Returns game statistics for the authenticated user
+      operationId: getUserStats
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  # ============================================================================
+  # Game Endpoints
+  # ============================================================================
+  
+  /game/games:
+    post:
+      tags:
+        - Game
+      summary: Create new game
+      description: Creates a new tic-tac-toe game session
+      operationId: createGame
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGameRequest'
+      responses:
+        '201':
+          description: Game created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /game/games/{gameId}:
+    get:
+      tags:
+        - Game
+      summary: Get game state
+      description: Returns the current state of a game
+      operationId: getGame
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Game state retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    delete:
+      tags:
+        - Game
+      summary: Forfeit game
+      description: Forfeits the current game
+      operationId: forfeitGame
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Game forfeited successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /game/games/{gameId}/moves:
+    post:
+      tags:
+        - Game
+      summary: Make a move
+      description: Makes a move in the specified game
+      operationId: makeMove
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveRequest'
+      responses:
+        '200':
+          description: Move made successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Invalid move (position occupied or not player's turn)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  # ============================================================================
+  # Leaderboard Endpoints
+  # ============================================================================
+  
+  /leaderboard/global:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get global leaderboard
+      description: Returns the global leaderboard rankings
+      operationId: getGlobalLeaderboard
+      security: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+          description: Number of results to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Offset for pagination
+      responses:
+        '200':
+          description: Leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /leaderboard/regional/{region}:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get regional leaderboard
+      description: Returns the leaderboard for a specific region
+      operationId: getRegionalLeaderboard
+      security: []
+      parameters:
+        - name: region
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [europe, americas, asia, oceania, africa]
+          description: Geographic region
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Regional leaderboard retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /leaderboard/user/{userId}:
+    get:
+      tags:
+        - Leaderboard
+      summary: Get user ranking
+      description: Returns the ranking and statistics for a specific user
+      operationId: getUserRanking
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: User ID
+      responses:
+        '200':
+          description: User ranking retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRanking'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  # ============================================================================
+  # Support Endpoints
+  # ============================================================================
+  
+  /support/tickets:
+    post:
+      tags:
+        - Support
+      summary: Create support ticket
+      description: Creates a new support ticket
+      operationId: createTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTicketRequest'
+      responses:
+        '201':
+          description: Ticket created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    
+    get:
+      tags:
+        - Support
+      summary: List user tickets
+      description: Returns all tickets for the authenticated user
+      operationId: listTickets
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, in_progress, resolved, closed]
+          description: Filter by ticket status
+      responses:
+        '200':
+          description: Tickets retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /support/tickets/{ticketId}:
+    get:
+      tags:
+        - Support
+      summary: Get ticket details
+      description: Returns details of a specific ticket
+      operationId: getTicket
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Ticket ID
+      responses:
+        '200':
+          description: Ticket retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /support/faq:
+    get:
+      tags:
+        - Support
+      summary: Get FAQ list
+      description: Returns frequently asked questions
+      operationId: getFAQ
+      security: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by category
+      responses:
+        '200':
+          description: FAQ retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FAQItem'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  
+  /support/faq/search:
+    get:
+      tags:
+        - Support
+      summary: Search FAQ
+      description: Searches FAQ by keyword
+      operationId: searchFAQ
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+      responses:
+        '200':
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FAQItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+# ============================================================================
+# Components
+# ============================================================================
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained through OAuth login
+    
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for service-to-service communication
+  
+  parameters:
+    GameId:
+      name: gameId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Unique game identifier
+  
+  schemas:
+    # Authentication Schemas
+    OAuthUrlResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - url
+            - state
+          properties:
+            url:
+              type: string
+              format: uri
+              description: OAuth authorization URL
+            state:
+              type: string
+              description: State parameter for CSRF protection
+    
+    AuthResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - accessToken
+            - refreshToken
+            - expiresIn
+            - user
+          properties:
+            accessToken:
+              type: string
+              description: JWT access token
+            refreshToken:
+              type: string
+              description: Refresh token
+            expiresIn:
+              type: integer
+              description: Token expiration time in seconds
+            user:
+              $ref: '#/components/schemas/UserProfile'
+    
+    UserProfile:
+      type: object
+      required:
+        - userId
+        - email
+        - username
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        socialProvider:
+          type: string
+          enum: [google, facebook, twitter]
+        createdAt:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
+    
+    UserProfileUpdate:
+      type: object
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        avatarUrl:
+          type: string
+          format: uri
+    
+    UserStats:
+      type: object
+      required:
+        - gamesPlayed
+        - gamesWon
+        - gamesLost
+        - gamesDrawn
+      properties:
+        gamesPlayed:
+          type: integer
+          minimum: 0
+        gamesWon:
+          type: integer
+          minimum: 0
+        gamesLost:
+          type: integer
+          minimum: 0
+        gamesDrawn:
+          type: integer
+          minimum: 0
+        currentStreak:
+          type: integer
+        bestStreak:
+          type: integer
+        winPercentage:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+    
+    # Game Schemas
+    CreateGameRequest:
+      type: object
+      properties:
+        opponentId:
+          type: string
+          format: uuid
+          description: Opponent user ID (optional for matchmaking)
+    
+    Game:
+      type: object
+      required:
+        - gameId
+        - players
+        - board
+        - currentPlayer
+        - status
+        - createdAt
+      properties:
+        gameId:
+          type: string
+          format: uuid
+        players:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 2
+          maxItems: 2
+        board:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+              nullable: true
+              enum: [X, O, null]
+          minItems: 3
+          maxItems: 3
+        currentPlayer:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, completed, forfeited]
+        winner:
+          type: string
+          format: uuid
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    MoveRequest:
+      type: object
+      required:
+        - row
+        - col
+      properties:
+        row:
+          type: integer
+          minimum: 0
+          maximum: 2
+        col:
+          type: integer
+          minimum: 0
+          maximum: 2
+    
+    # Leaderboard Schemas
+    LeaderboardResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - rankings
+            - total
+          properties:
+            rankings:
+              type: array
+              items:
+                $ref: '#/components/schemas/LeaderboardEntry'
+            total:
+              type: integer
+              description: Total number of ranked players
+            limit:
+              type: integer
+            offset:
+              type: integer
+    
+    LeaderboardEntry:
+      type: object
+      required:
+        - rank
+        - userId
+        - username
+        - gamesPlayed
+        - gamesWon
+        - winPercentage
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        userId:
+          type: string
+          format: uuid
+        username:
+          type: string
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        gamesPlayed:
+          type: integer
+        gamesWon:
+          type: integer
+        gamesLost:
+          type: integer
+        gamesDrawn:
+          type: integer
+        winPercentage:
+          type: number
+          format: float
+        currentStreak:
+          type: integer
+        bestStreak:
+          type: integer
+    
+    UserRanking:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          allOf:
+            - $ref: '#/components/schemas/LeaderboardEntry'
+            - type: object
+              properties:
+                globalRank:
+                  type: integer
+                regionalRank:
+                  type: integer
+                region:
+                  type: string
+    
+    # Support Schemas
+    CreateTicketRequest:
+      type: object
+      required:
+        - subject
+        - description
+        - category
+      properties:
+        subject:
+          type: string
+          minLength: 5
+          maxLength: 200
+        description:
+          type: string
+          minLength: 20
+          maxLength: 2000
+        category:
+          type: string
+          enum: [technical, gameplay, account, billing, other]
+        priority:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+    
+    Ticket:
+      type: object
+      required:
+        - ticketId
+        - userId
+        - subject
+        - description
+        - category
+        - status
+        - priority
+        - createdAt
+      properties:
+        ticketId:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [technical, gameplay, account, billing, other]
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        priority:
+          type: string
+          enum: [low, medium, high, urgent]
+        assignedTo:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+    
+    FAQItem:
+      type: object
+      required:
+        - id
+        - question
+        - answer
+        - category
+      properties:
+        id:
+          type: string
+        question:
+          type: string
+        answer:
+          type: string
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        helpful:
+          type: integer
+          description: Number of users who found this helpful
+    
+    # Common Schemas
+    SuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - message
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+  
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: BAD_REQUEST
+            message: Invalid request parameters
+            timestamp: "2025-11-07T10:30:00Z"
+    
+    Unauthorized:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: UNAUTHORIZED
+            message: Authentication required
+            timestamp: "2025-11-07T10:30:00Z"
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: NOT_FOUND
+            message: Resource not found
+            timestamp: "2025-11-07T10:30:00Z"
+    
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: INTERNAL_ERROR
+            message: An unexpected error occurred
+            timestamp: "2025-11-07T10:30:00Z"

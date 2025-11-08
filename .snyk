@@ -1,0 +1,40 @@
+# Snyk (https://snyk.io) policy file
+
+# Specifies which vulnerabilities to ignore and which to monitor
+
+version: v1.25.0
+
+# Ignore specific vulnerabilities
+ignore:
+  # Example: Ignore a specific vulnerability until a certain date
+  # 'SNYK-JS-LODASH-590103':
+  #   - '*':
+  #       reason: 'No fix available yet, risk accepted'
+  #       expires: '2024-12-31T00:00:00.000Z'
+
+# Patch specific vulnerabilities
+patch: {}
+
+# Exclude paths from scanning
+exclude:
+  global:
+    - node_modules/**
+    - coverage/**
+    - dist/**
+    - build/**
+    - .terraform/**
+    - '**/*.test.js'
+    - '**/*.spec.js'
+
+# Language-specific settings
+language-settings:
+  javascript:
+    # Fail on high severity vulnerabilities
+    fail-on: high
+    
+  python:
+    # Fail on high severity vulnerabilities
+    fail-on: high
+
+# Organization settings (configure in Snyk dashboard)
+org: global-gaming-platform

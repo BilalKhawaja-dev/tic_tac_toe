@@ -1,0 +1,13 @@
+{
+  "name": "cognito-post-authentication-trigger",
+  "version": "1.0.0",
+  "description": "Cognito post authentication Lambda trigger",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1490.0",
+    "pg": "^8.11.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

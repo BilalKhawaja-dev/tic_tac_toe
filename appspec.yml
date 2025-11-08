@@ -1,0 +1,28 @@
+version: 0.0
+# AWS CodeDeploy AppSpec for ECS Blue/Green Deployments
+
+Resources:
+  - TargetService:
+      Type: AWS::ECS::Service
+      Properties:
+        TaskDefinition: <TASK_DEFINITION>
+        LoadBalancerInfo:
+          ContainerName: "app"
+          ContainerPort: 3000
+        PlatformVersion: "LATEST"
+        NetworkConfiguration:
+          AwsvpcConfiguration:
+            Subnets:
+              - <SUBNET_1>
+              - <SUBNET_2>
+              - <SUBNET_3>
+            SecurityGroups:
+              - <SECURITY_GROUP>
+            AssignPublicIp: "DISABLED"
+
+Hooks:
+  - BeforeInstall: "LambdaFunctionToValidateBeforeInstall"
+  - AfterInstall: "LambdaFunctionToValidateAfterInstall"
+  - AfterAllowTestTraffic: "LambdaFunctionToValidateAfterTestTrafficStarts"
+  - BeforeAllowTraffic: "LambdaFunctionToValidateBeforeAllowingProductionTraffic"
+  - AfterAllowTraffic: "LambdaFunctionToValidateAfterAllowingProductionTraffic"

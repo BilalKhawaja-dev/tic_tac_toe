@@ -1,0 +1,43 @@
+{
+  "name": "@gaming-platform/support-service",
+  "version": "1.0.0",
+  "description": "Support ticket management service with Lambda functions",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest --coverage",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "deploy": "serverless deploy",
+    "deploy:dev": "serverless deploy --stage dev",
+    "deploy:prod": "serverless deploy --stage prod"
+  },
+  "keywords": [
+    "support",
+    "tickets",
+    "customer-service",
+    "lambda",
+    "serverless"
+  ],
+  "author": "Global Gaming Platform Team",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.1490.0",
+    "@aws-sdk/client-dynamodb": "^3.441.0",
+    "@aws-sdk/lib-dynamodb": "^3.441.0",
+    "@aws-sdk/client-sqs": "^3.441.0",
+    "@aws-sdk/client-sns": "^3.441.0",
+    "uuid": "^9.0.1",
+    "joi": "^17.11.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "eslint": "^8.55.0",
+    "serverless": "^3.38.0",
+    "serverless-offline": "^13.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

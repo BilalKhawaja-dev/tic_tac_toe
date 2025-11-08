@@ -1,0 +1,12 @@
+{
+  "name": "cognito-pre-token-generation-trigger",
+  "version": "1.0.0",
+  "description": "Cognito pre token generation Lambda trigger for JWT customization",
+  "main": "index.js",
+  "dependencies": {
+    "aws-sdk": "^2.1490.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

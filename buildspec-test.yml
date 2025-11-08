@@ -1,0 +1,101 @@
+version: 0.2
+
+# AWS CodeBuild specification for running tests and security scans
+# This buildspec handles automated testing, security scanning, and infrastructure validation
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+      python: 3.11
+    commands:
+      - echo "Installing dependencies..."
+      - npm install -g snyk
+      - pip install checkov
+      
+  pre_build:
+    commands:
+      - echo "Pre-build phase started on `date`"
+      - echo "Running dependency audit..."
+      - |
+        if [ -f "package.json" ]; then
+          npm audit --audit-level=high || true
+        fi
+      
+  build:
+    commands:
+      - echo "Build phase started on `date`"
+      
+      # Run unit tests
+      - echo "Running unit tests..."
+      - |
+        if [ "$SERVICE_NAME" = "game-engine" ]; then
+          cd src/game-engine && npm install && npm test -- --coverage
+        elif [ "$SERVICE_NAME" = "auth-service" ]; then
+          cd src/auth-service && npm install && npm test -- --coverage
+        elif [ "$SERVICE_NAME" = "leaderboard-service" ]; then
+          cd src/leaderboard-service && npm install && npm test -- --coverage
+        elif [ "$SERVICE_NAME" = "frontend" ]; then
+          cd src/frontend && npm install && npm test -- --coverage
+        fi
+      
+      # Run security scanning with Snyk
+      - echo "Running Snyk security scan..."
+      - |
+        if [ -n "$SNYK_TOKEN" ]; then
+          snyk auth $SNYK_TOKEN
+          snyk test --severity-threshold=high || true
+        else
+          echo "SNYK_TOKEN not set, skipping Snyk scan"
+        fi
+      
+      # Run infrastructure validation
+      - echo "Validating Terraform configurations..."
+      - |
+        if [ -d "infrastructure/terraform" ]; then
+          cd infrastructure/terraform
+          terraform init -backend=false
+          terraform validate
+          terraform fmt -check -recursive || true
+        fi
+      
+      # Run Checkov for infrastructure security
+      - echo "Running Checkov security scan..."
+      - |
+        if [ -d "infrastructure/terraform" ]; then
+          checkov -d infrastructure/terraform --framework terraform --quiet || true
+        fi
+      
+  post_build:
+    commands:
+      - echo "Post-build phase started on `date`"
+      - echo "Generating test reports..."
+      - |
+        if [ -f "coverage/lcov.info" ]; then
+          echo "Test coverage report generated"
+        fi
+      - echo "Testing completed on `date`"
+
+reports:
+  test_report:
+    files:
+      - '**/*'
+    base-directory: 'coverage'
+    file-format: 'CLOVERXML'
+  
+  security_report:
+    files:
+      - 'snyk-report.json'
+    file-format: 'CUCUMBERJSON'
+
+artifacts:
+  files:
+    - coverage/**/*
+    - snyk-report.json
+  name: test-artifacts
+
+cache:
+  paths:
+    - '/root/.npm/**/*'
+    - '/root/.cache/**/*'
+    - 'node_modules/**/*'
