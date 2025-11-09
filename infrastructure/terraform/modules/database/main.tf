@@ -2,7 +2,7 @@
 # Creates Aurora Global Database, DynamoDB tables, ElastiCache, and DAX
 
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.5.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -28,9 +28,20 @@ resource "aws_db_subnet_group" "aurora" {
 
 # Aurora Global Database Cluster
 resource "aws_rds_global_cluster" "main" {
-  global_cluster_identifier    = "${var.project_name}-global-cluster"
-  engine                       = "aurora-postgresql"
-  engine_version               = var.aurora_engine_version
+  global_cluster_identifier = "${var.project_name}-global-cluster"
+  engine                    = "aurora-postgresql"
+  engine_version            = var.aurora_engine_version
+  database_name             = var.database_name
+  storage_encrypted         = true
+  deletion_protection       = var.environment == "production"
+}
+
+# Primary Aurora Cluster (eu-west-2)
+resource "aws_rds_cluster" "primary" {
+  cluster_identifier           = "${var.project_name}-aurora-cluster"
+  global_cluster_identifier    = aws_rds_global_cluster.main.id
+  engine                       = aws_rds_global_cluster.main.engine
+  engine_version               = aws_rds_global_cluster.main.engine_version
   database_name                = var.database_name
   master_username              = var.master_username
   master_password              = var.master_password
@@ -40,25 +51,6 @@ resource "aws_rds_global_cluster" "main" {
   storage_encrypted            = true
   kms_key_id                   = var.rds_kms_key_arn
   deletion_protection          = var.environment == "production"
-
-  tags = var.tags
-}
-
-# Primary Aurora Cluster (eu-west-2)
-resource "aws_rds_cluster" "primary" {
-  cluster_identifier           = "${var.project_name}-aurora-cluster"
-  global_cluster_identifier    = aws_rds_global_cluster.main.id
-  engine                       = aws_rds_global_cluster.main.engine
-  engine_version               = aws_rds_global_cluster.main.engine_version
-  database_name                = aws_rds_global_cluster.main.database_name
-  master_username              = aws_rds_global_cluster.main.master_username
-  master_password              = aws_rds_global_cluster.main.master_password
-  backup_retention_period      = aws_rds_global_cluster.main.backup_retention_period
-  preferred_backup_window      = aws_rds_global_cluster.main.preferred_backup_window
-  preferred_maintenance_window = aws_rds_global_cluster.main.preferred_maintenance_window
-  storage_encrypted            = aws_rds_global_cluster.main.storage_encrypted
-  kms_key_id                   = aws_rds_global_cluster.main.kms_key_id
-  deletion_protection          = aws_rds_global_cluster.main.deletion_protection
 
   db_subnet_group_name   = aws_db_subnet_group.aurora.name
   vpc_security_group_ids = [var.rds_security_group_id]

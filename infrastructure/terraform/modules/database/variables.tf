@@ -279,12 +279,6 @@ variable "secondary_region" {
   default     = "eu-west-1"
 }
 
-variable "enable_autoscaling" {
-  description = "Enable auto scaling for DynamoDB tables (only for PROVISIONED billing)"
-  type        = bool
-  default     = true
-}
-
 # Games table capacity settings
 variable "games_table_read_capacity" {
   description = "Read capacity units for games table"

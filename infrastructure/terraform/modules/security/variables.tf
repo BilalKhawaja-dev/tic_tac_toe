@@ -146,11 +146,11 @@ variable "twitter_api_secret" {
 variable "cloudtrail_log_retention_days" {
   description = "Number of days to retain CloudTrail logs"
   type        = number
-  default     = 2555 # 7 years for compliance
+  default     = 3653 # 10 years for compliance (valid CloudWatch retention value)
 
   validation {
-    condition     = var.cloudtrail_log_retention_days >= 90
-    error_message = "CloudTrail log retention must be at least 90 days for compliance."
+    condition     = contains([0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.cloudtrail_log_retention_days)
+    error_message = "CloudTrail log retention must be a valid CloudWatch Logs retention period."
   }
 }
 

@@ -2,7 +2,7 @@
 # Creates VPC, subnets, security groups, and networking components
 
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.5.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -366,6 +366,37 @@ resource "aws_security_group" "elasticache" {
 
   tags = merge(var.tags, {
     Name = "${var.project_name}-cache-sg"
+  })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# DAX Security Group
+resource "aws_security_group" "dax" {
+  name_prefix = "${var.project_name}-dax-"
+  vpc_id      = aws_vpc.main.id
+  description = "Security group for DynamoDB Accelerator (DAX)"
+
+  ingress {
+    description     = "DAX from ECS"
+    from_port       = 8111
+    to_port         = 8111
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs.id]
+  }
+
+  ingress {
+    description     = "DAX from Lambda"
+    from_port       = 8111
+    to_port         = 8111
+    protocol        = "tcp"
+    security_groups = [aws_security_group.lambda.id]
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-dax-sg"
   })
 
   lifecycle {

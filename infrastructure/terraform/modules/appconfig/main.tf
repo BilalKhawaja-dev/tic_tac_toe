@@ -289,11 +289,9 @@ resource "aws_lambda_function" "config_change_handler" {
 # Archive file for Lambda function
 data "archive_file" "config_change_handler" {
   type        = "zip"
-  output_path = "config_change_handler.zip"
+  output_path = "${path.module}/config_change_handler.zip"
   source {
-    content = templatefile("${path.module}/lambda/config_change_handler.js", {
-      sns_topic_arn = aws_sns_topic.config_alerts.arn
-    })
+    content  = file("${path.module}/lambda/config_change_handler.js")
     filename = "index.js"
   }
 }

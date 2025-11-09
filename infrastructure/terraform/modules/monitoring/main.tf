@@ -2,7 +2,7 @@
 # Creates CloudWatch dashboards, X-Ray tracing, SNS topics, and centralized logging
 
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.5.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -84,7 +84,7 @@ resource "aws_cloudwatch_log_group" "api_gateway" {
 
 # X-Ray Tracing
 resource "aws_xray_sampling_rule" "main" {
-  rule_name      = "${var.project_name}-sampling-rule"
+  rule_name      = "ggp-${var.environment}-sampling"
   priority       = 9000
   version        = 1
   reservoir_size = 1
@@ -169,11 +169,9 @@ resource "aws_lambda_function" "alert_processor" {
 # Archive file for alert processor Lambda
 data "archive_file" "alert_processor" {
   type        = "zip"
-  output_path = "alert_processor.zip"
+  output_path = "${path.module}/alert_processor.zip"
   source {
-    content = templatefile("${path.module}/lambda/alert_processor.js", {
-      project_name = var.project_name
-    })
+    content  = file("${path.module}/lambda/alert_processor.js")
     filename = "index.js"
   }
 }

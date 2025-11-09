@@ -199,3 +199,14 @@ output "resource_configuration" {
     requires_compatibilities = ["FARGATE"]
   }
 }
+
+# Alias outputs for compatibility
+output "cluster_name" {
+  description = "Alias for ECS cluster name"
+  value       = aws_ecs_cluster.main.name
+}
+
+output "ecr_repository_url" {
+  description = "Alias for ECR repository URL"
+  value       = aws_ecr_repository.game_engine.repository_url
+}

@@ -206,3 +206,19 @@ output "network_summary" {
     vpc_endpoints      = 5
   }
 }
+
+# Alias outputs for compatibility
+output "database_security_group_id" {
+  description = "Alias for RDS security group ID"
+  value       = aws_security_group.rds.id
+}
+
+output "cache_security_group_id" {
+  description = "Alias for ElastiCache security group ID"
+  value       = aws_security_group.elasticache.id
+}
+
+output "dax_security_group_id" {
+  description = "ID of the DAX security group"
+  value       = aws_security_group.dax.id
+}

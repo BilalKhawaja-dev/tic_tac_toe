@@ -1,0 +1,14 @@
+{
+  "name": "secrets-rotation-lambda",
+  "version": "1.0.0",
+  "description": "AWS Secrets Manager rotation Lambda function",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1400.0"
+  },
+  "author": "",
+  "license": "MIT"
+}

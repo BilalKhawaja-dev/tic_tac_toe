@@ -302,3 +302,69 @@ output "caching_summary" {
     dax_encryption        = true
   }
 }
+
+# Alias outputs for compatibility
+output "aurora_cluster_endpoint" {
+  description = "Alias for primary cluster endpoint"
+  value       = aws_rds_cluster.primary_with_params.endpoint
+}
+
+output "aurora_endpoint" {
+  description = "Alias for primary cluster endpoint"
+  value       = aws_rds_cluster.primary_with_params.endpoint
+}
+
+output "database_name" {
+  description = "Alias for database name"
+  value       = aws_rds_cluster.primary_with_params.database_name
+}
+
+output "dynamodb_games_table_name" {
+  description = "Name of the games DynamoDB table"
+  value       = aws_dynamodb_table.games.name
+}
+
+output "dynamodb_sessions_table_name" {
+  description = "Name of the sessions DynamoDB table"
+  value       = aws_dynamodb_table.user_sessions.name
+}
+
+output "dynamodb_moves_table_name" {
+  description = "Name of the moves DynamoDB table"
+  value       = aws_dynamodb_table.game_moves.name
+}
+
+output "dynamodb_leaderboard_table_name" {
+  description = "Name of the leaderboard DynamoDB table"
+  value       = aws_dynamodb_table.leaderboard.name
+}
+
+output "dynamodb_games_table_arn" {
+  description = "ARN of the games DynamoDB table"
+  value       = aws_dynamodb_table.games.arn
+}
+
+output "dynamodb_sessions_table_arn" {
+  description = "ARN of the sessions DynamoDB table"
+  value       = aws_dynamodb_table.user_sessions.arn
+}
+
+output "dynamodb_moves_table_arn" {
+  description = "ARN of the moves DynamoDB table"
+  value       = aws_dynamodb_table.game_moves.arn
+}
+
+output "dynamodb_leaderboard_table_arn" {
+  description = "ARN of the leaderboard DynamoDB table"
+  value       = aws_dynamodb_table.leaderboard.arn
+}
+
+output "redis_endpoint" {
+  description = "Alias for Redis primary endpoint"
+  value       = aws_elasticache_replication_group.redis.primary_endpoint_address
+}
+
+output "dax_endpoint" {
+  description = "Alias for DAX cluster address"
+  value       = aws_dax_cluster.main.cluster_address
+}

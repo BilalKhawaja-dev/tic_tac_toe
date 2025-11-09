@@ -1,0 +1,41 @@
+# Development Environment Configuration
+# Copy this file to terraform.tfvars and update with your values
+
+project_name = "global-gaming-platform"
+environment  = "dev"
+aws_region   = "eu-west-2"
+
+# Network Configuration
+vpc_cidr = "10.0.0.0/16"
+
+# Database Configuration
+db_instance_class           = "db.t3.medium"
+db_backup_retention_period  = 7
+
+# ECS Configuration
+ecs_task_cpu    = "256"
+ecs_task_memory = "512"
+
+# Monitoring Configuration
+alert_email = "your-email@example.com"
+
+# Service Names
+service_names = [
+  "game-engine",
+  "auth-service",
+  "leaderboard-service",
+  "support-service"
+]
+
+# GitHub Configuration
+github_repo   = "your-org/tic-tac-toe"
+github_branch = "develop"
+
+# Common Tags
+common_tags = {
+  Project     = "global-gaming-platform"
+  Environment = "dev"
+  ManagedBy   = "Terraform"
+  Owner       = "DevOps Team"
+  CostCenter  = "Engineering"
+}

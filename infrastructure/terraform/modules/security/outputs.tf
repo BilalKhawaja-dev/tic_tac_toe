@@ -194,3 +194,25 @@ output "all_iam_role_arns" {
     cloudtrail_logs    = aws_iam_role.cloudtrail_logs.arn
   }
 }
+
+# Alias outputs for compatibility
+output "kms_key_arn" {
+  description = "Alias for main KMS key ARN"
+  value       = aws_kms_key.main.arn
+}
+
+output "kms_key_id" {
+  description = "Alias for main KMS key ID"
+  value       = aws_kms_key.main.key_id
+}
+
+# S3 Bucket for User Content
+output "user_content_bucket_arn" {
+  description = "ARN of the user content S3 bucket"
+  value       = aws_s3_bucket.user_content.arn
+}
+
+output "user_content_bucket_name" {
+  description = "Name of the user content S3 bucket"
+  value       = aws_s3_bucket.user_content.bucket
+}

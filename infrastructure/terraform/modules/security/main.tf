@@ -2,7 +2,7 @@
 # Creates IAM roles, KMS keys, Secrets Manager, and CloudTrail
 
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.5.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -612,6 +612,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "cloudtrail" {
     id     = "cloudtrail_logs_lifecycle"
     status = "Enabled"
 
+    filter {
+      prefix = ""
+    }
+
     transition {
       days          = 30
       storage_class = "STANDARD_IA"
@@ -751,4 +755,87 @@ resource "aws_iam_role_policy" "cloudtrail_logs" {
       }
     ]
   })
+}
+
+# ============================================================================
+# User Content S3 Bucket
+# ============================================================================
+
+# S3 Bucket for user-generated content (avatars, game replays, etc.)
+resource "aws_s3_bucket" "user_content" {
+  bucket        = "${var.project_name}-user-content-${random_id.bucket_suffix.hex}"
+  force_destroy = var.environment != "production"
+
+  tags = merge(var.tags, {
+    Name = "${var.project_name}-user-content"
+    Type = "user-data"
+  })
+}
+
+# S3 Bucket versioning for user content
+resource "aws_s3_bucket_versioning" "user_content" {
+  bucket = aws_s3_bucket.user_content.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# S3 Bucket encryption for user content
+resource "aws_s3_bucket_server_side_encryption_configuration" "user_content" {
+  bucket = aws_s3_bucket.user_content.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.s3.arn
+      sse_algorithm     = "aws:kms"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+# S3 Bucket public access block for user content
+resource "aws_s3_bucket_public_access_block" "user_content" {
+  bucket = aws_s3_bucket.user_content.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# S3 Bucket lifecycle configuration for user content
+resource "aws_s3_bucket_lifecycle_configuration" "user_content" {
+  bucket = aws_s3_bucket.user_content.id
+
+  rule {
+    id     = "user_content_lifecycle"
+    status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
+
+    transition {
+      days          = 90
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = 180
+      storage_class = "GLACIER"
+    }
+  }
+}
+
+# CORS configuration for user content (for direct uploads from browser)
+resource "aws_s3_bucket_cors_configuration" "user_content" {
+  bucket = aws_s3_bucket.user_content.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "PUT", "POST"]
+    allowed_origins = ["*"]  # Should be restricted to your domain in production
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
 }

@@ -2,7 +2,7 @@
 # Creates ECS cluster, services, and auto-scaling configuration
 
 terraform {
-  required_version = ">= 1.6.0"
+  required_version = ">= 1.5.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -96,7 +96,7 @@ resource "aws_lb" "main" {
 
 # ALB Target Group for Game Engine Service
 resource "aws_lb_target_group" "game_engine" {
-  name        = "${var.project_name}-game-engine-tg"
+  name        = "ggp-${var.environment}-game-tg"
   port        = 3000
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
@@ -396,19 +396,18 @@ resource "aws_ecs_service" "game_engine" {
   task_definition = aws_ecs_task_definition.game_engine.arn
   desired_count   = var.game_engine_desired_count
 
+  # Primary capacity provider (FARGATE)
   capacity_provider_strategy {
     capacity_provider = "FARGATE"
     weight            = var.fargate_weight
     base              = var.fargate_base_capacity
   }
 
-  dynamic "capacity_provider_strategy" {
-    for_each = var.enable_fargate_spot ? [1] : []
-    content {
-      capacity_provider = "FARGATE_SPOT"
-      weight            = var.fargate_spot_weight
-      base              = var.fargate_spot_base_capacity
-    }
+  # Optional FARGATE_SPOT capacity provider
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = var.enable_fargate_spot ? var.fargate_spot_weight : 0
+    base              = var.enable_fargate_spot ? var.fargate_spot_base_capacity : 0
   }
 
   network_configuration {
@@ -423,15 +422,15 @@ resource "aws_ecs_service" "game_engine" {
     container_port   = 3000
   }
 
-  deployment_configuration {
-    maximum_percent         = 200
-    minimum_healthy_percent = 50
-
-    deployment_circuit_breaker {
-      enable   = true
-      rollback = true
-    }
-  }
+  # deployment_configuration {
+  #   maximum_percent         = 200
+  #   minimum_healthy_percent = 50
+  #
+  #   deployment_circuit_breaker {
+  #     enable   = true
+  #     rollback = true
+  #   }
+  # }
 
   enable_execute_command = var.enable_ecs_exec
 
@@ -506,8 +505,9 @@ resource "aws_appautoscaling_policy" "game_engine_connections" {
       namespace   = "${var.project_name}/GameEngine"
       statistic   = "Average"
 
-      dimensions = {
-        ServiceName = aws_ecs_service.game_engine.name
+      dimensions {
+        name  = "ServiceName"
+        value = aws_ecs_service.game_engine.name
       }
     }
     target_value       = var.connections_target_value

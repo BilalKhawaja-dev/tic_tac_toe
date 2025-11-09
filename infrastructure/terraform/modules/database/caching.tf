@@ -106,11 +106,6 @@ resource "aws_cloudwatch_log_group" "redis_slow_log" {
 resource "aws_dax_subnet_group" "main" {
   name       = "${var.project_name}-dax-subnet-group"
   subnet_ids = var.private_subnet_ids
-
-  tags = merge(var.tags, {
-    Name = "${var.project_name}-dax-subnet-group"
-    Type = "dax"
-  })
 }
 
 # DAX Parameter Group
@@ -118,18 +113,15 @@ resource "aws_dax_parameter_group" "main" {
   name = "${var.project_name}-dax-params"
 
   # Performance parameters
-  parameters = [
-    {
-      name  = "query-ttl-millis"
-      value = "300000" # 5 minutes
-    },
-    {
-      name  = "record-ttl-millis"
-      value = "300000" # 5 minutes
-    }
-  ]
+  parameters {
+    name  = "query-ttl-millis"
+    value = "300000" # 5 minutes
+  }
 
-  tags = var.tags
+  parameters {
+    name  = "record-ttl-millis"
+    value = "300000" # 5 minutes
+  }
 }
 
 # IAM Role for DAX
@@ -191,7 +183,7 @@ resource "aws_iam_role_policy" "dax" {
 
 # DAX Cluster
 resource "aws_dax_cluster" "main" {
-  cluster_name       = "${var.project_name}-dax"
+  cluster_name       = "ggp-dax-${var.environment}"
   iam_role_arn       = aws_iam_role.dax.arn
   node_type          = var.dax_node_type
   replication_factor = var.dax_replication_factor

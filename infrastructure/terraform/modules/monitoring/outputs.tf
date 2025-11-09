@@ -173,3 +173,29 @@ output "alerting_configuration" {
     alarm_thresholds = var.alarm_thresholds
   }
 }
+
+# Individual outputs for compatibility
+output "critical_sns_topic_arn" {
+  description = "ARN of the critical alerts SNS topic"
+  value       = aws_sns_topic.critical_alerts.arn
+}
+
+output "warning_sns_topic_arn" {
+  description = "ARN of the warning alerts SNS topic"
+  value       = aws_sns_topic.warning_alerts.arn
+}
+
+output "info_sns_topic_arn" {
+  description = "ARN of the info alerts SNS topic"
+  value       = aws_sns_topic.info_alerts.arn
+}
+
+output "game_engine_log_group" {
+  description = "Name of the game engine CloudWatch log group"
+  value       = aws_cloudwatch_log_group.ecs_game_engine.name
+}
+
+output "game_engine_log_group_arn" {
+  description = "ARN of the game engine CloudWatch log group"
+  value       = aws_cloudwatch_log_group.ecs_game_engine.arn
+}
