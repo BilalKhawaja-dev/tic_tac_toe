@@ -32,10 +32,8 @@ resource "aws_elasticache_parameter_group" "redis" {
     value = "300"
   }
 
-  parameter {
-    name  = "maxclients"
-    value = "10000"
-  }
+  # maxclients parameter cannot be modified in ElastiCache
+  # It's automatically managed based on instance type
 
   tags = var.tags
 }

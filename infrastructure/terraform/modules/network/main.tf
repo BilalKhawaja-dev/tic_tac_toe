@@ -533,7 +533,7 @@ data "aws_region" "current" {}
 
 # VPC Endpoint Route Table Associations for S3 and DynamoDB
 resource "aws_vpc_endpoint_route_table_association" "s3_private" {
-  count = length(aws_route_table.private)
+  count = 3
 
   vpc_endpoint_id = aws_vpc_endpoint.s3.id
   route_table_id  = aws_route_table.private[count.index].id
@@ -545,7 +545,7 @@ resource "aws_vpc_endpoint_route_table_association" "s3_isolated" {
 }
 
 resource "aws_vpc_endpoint_route_table_association" "dynamodb_private" {
-  count = length(aws_route_table.private)
+  count = 3
 
   vpc_endpoint_id = aws_vpc_endpoint.dynamodb.id
   route_table_id  = aws_route_table.private[count.index].id

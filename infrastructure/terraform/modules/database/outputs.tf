@@ -1,77 +1,77 @@
 # Outputs for Database Infrastructure Module
 
-# Aurora Global Cluster
-output "global_cluster_id" {
-  description = "ID of the Aurora Global Cluster"
-  value       = aws_rds_global_cluster.main.id
-}
+# Aurora Global Cluster (disabled for dev)
+# output "global_cluster_id" {
+#   description = "ID of the Aurora Global Cluster"
+#   value       = aws_rds_global_cluster.main.id
+# }
 
-output "global_cluster_arn" {
-  description = "ARN of the Aurora Global Cluster"
-  value       = aws_rds_global_cluster.main.arn
-}
+# output "global_cluster_arn" {
+#   description = "ARN of the Aurora Global Cluster"
+#   value       = aws_rds_global_cluster.main.arn
+# }
 
-output "global_cluster_engine" {
-  description = "Engine of the Aurora Global Cluster"
-  value       = aws_rds_global_cluster.main.engine
-}
+# output "global_cluster_engine" {
+#   description = "Engine of the Aurora Global Cluster"
+#   value       = aws_rds_global_cluster.main.engine
+# }
 
-output "global_cluster_engine_version" {
-  description = "Engine version of the Aurora Global Cluster"
-  value       = aws_rds_global_cluster.main.engine_version
-}
+# output "global_cluster_engine_version" {
+#   description = "Engine version of the Aurora Global Cluster"
+#   value       = aws_rds_global_cluster.main.engine_version
+# }
 
 # Primary Aurora Cluster
 output "primary_cluster_id" {
   description = "ID of the primary Aurora cluster"
-  value       = aws_rds_cluster.primary_with_params.cluster_identifier
+  value       = aws_rds_cluster.primary.cluster_identifier
 }
 
 output "primary_cluster_arn" {
   description = "ARN of the primary Aurora cluster"
-  value       = aws_rds_cluster.primary_with_params.arn
+  value       = aws_rds_cluster.primary.arn
 }
 
 output "primary_cluster_endpoint" {
   description = "Writer endpoint of the primary Aurora cluster"
-  value       = aws_rds_cluster.primary_with_params.endpoint
+  value       = aws_rds_cluster.primary.endpoint
 }
 
 output "primary_cluster_reader_endpoint" {
   description = "Reader endpoint of the primary Aurora cluster"
-  value       = aws_rds_cluster.primary_with_params.reader_endpoint
+  value       = aws_rds_cluster.primary.reader_endpoint
 }
 
 output "primary_cluster_port" {
   description = "Port of the primary Aurora cluster"
-  value       = aws_rds_cluster.primary_with_params.port
+  value       = aws_rds_cluster.primary.port
 }
 
 output "primary_cluster_database_name" {
   description = "Database name of the primary Aurora cluster"
-  value       = aws_rds_cluster.primary_with_params.database_name
+  value       = aws_rds_cluster.primary.database_name
 }
 
 output "primary_cluster_master_username" {
   description = "Master username of the primary Aurora cluster"
-  value       = aws_rds_cluster.primary_with_params.master_username
+  value       = aws_rds_cluster.primary.master_username
   sensitive   = true
 }
 
 # Primary Aurora Cluster Instances
 output "primary_instance_ids" {
   description = "IDs of the primary Aurora cluster instances"
-  value       = aws_rds_cluster_instance.primary_with_params[*].id
+  value       = aws_rds_cluster_instance.primary[*].id
 }
 
 output "primary_instance_endpoints" {
   description = "Endpoints of the primary Aurora cluster instances"
-  value       = aws_rds_cluster_instance.primary_with_params[*].endpoint
+  value       = aws_rds_cluster_instance.primary[*].endpoint
 }
 
 output "primary_instance_arns" {
   description = "ARNs of the primary Aurora cluster instances"
-  value       = aws_rds_cluster_instance.primary_with_params[*].arn
+  value       = aws_rds_cluster_instance.primary[*].arn
 }
 
 # Parameter Groups
@@ -142,10 +142,10 @@ output "cloudwatch_alarm_arns" {
 output "connection_info" {
   description = "Database connection information"
   value = {
-    host     = aws_rds_cluster.primary_with_params.endpoint
-    port     = aws_rds_cluster.primary_with_params.port
-    database = aws_rds_cluster.primary_with_params.database_name
-    username = aws_rds_cluster.primary_with_params.master_username
+    host     = aws_rds_cluster.primary.endpoint
+    port     = aws_rds_cluster.primary.port
+    database = aws_rds_cluster.primary.database_name
+    username = aws_rds_cluster.primary.master_username
   }
   sensitive = true
 }
@@ -154,11 +154,11 @@ output "connection_info" {
 output "database_summary" {
   description = "Summary of database configuration"
   value = {
-    global_cluster_created  = true
+    global_cluster_created  = false
     primary_cluster_created = true
     primary_instances       = var.primary_instance_count
-    engine                  = aws_rds_global_cluster.main.engine
-    engine_version          = aws_rds_global_cluster.main.engine_version
+    engine                  = "aurora-postgresql"
+    engine_version          = var.aurora_engine_version
     backup_retention_days   = var.backup_retention_period
     enhanced_monitoring     = var.enable_enhanced_monitoring
     performance_insights    = var.enable_performance_insights
@@ -211,10 +211,10 @@ output "integration_points" {
   description = "Key integration points for other modules"
   value = {
     # Aurora
-    primary_endpoint = aws_rds_cluster.primary_with_params.endpoint
-    reader_endpoint  = aws_rds_cluster.primary_with_params.reader_endpoint
-    port             = aws_rds_cluster.primary_with_params.port
-    database_name    = aws_rds_cluster.primary_with_params.database_name
+    primary_endpoint = aws_rds_cluster.primary.endpoint
+    reader_endpoint  = aws_rds_cluster.primary.reader_endpoint
+    port             = aws_rds_cluster.primary.port
+    database_name    = aws_rds_cluster.primary.database_name
     secret_arn       = var.database_secret_arn
     kms_key_arn      = var.rds_kms_key_arn
 
@@ -306,17 +306,17 @@ output "caching_summary" {
 # Alias outputs for compatibility
 output "aurora_cluster_endpoint" {
   description = "Alias for primary cluster endpoint"
-  value       = aws_rds_cluster.primary_with_params.endpoint
+  value       = aws_rds_cluster.primary.endpoint
 }
 
 output "aurora_endpoint" {
   description = "Alias for primary cluster endpoint"
-  value       = aws_rds_cluster.primary_with_params.endpoint
+  value       = aws_rds_cluster.primary.endpoint
 }
 
 output "database_name" {
   description = "Alias for database name"
-  value       = aws_rds_cluster.primary_with_params.database_name
+  value       = aws_rds_cluster.primary.database_name
 }
 
 output "dynamodb_games_table_name" {

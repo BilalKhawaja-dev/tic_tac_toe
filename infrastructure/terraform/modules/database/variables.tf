@@ -78,7 +78,7 @@ variable "info_sns_topic_arn" {
 variable "aurora_engine_version" {
   description = "Aurora PostgreSQL engine version"
   type        = string
-  default     = "15.4"
+  default     = "15.8"
 }
 
 variable "database_name" {

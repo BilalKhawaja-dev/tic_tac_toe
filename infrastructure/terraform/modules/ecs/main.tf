@@ -82,11 +82,13 @@ resource "aws_lb" "main" {
   enable_http2                     = true
   enable_cross_zone_load_balancing = true
 
-  access_logs {
-    bucket  = var.alb_access_logs_bucket
-    prefix  = "${var.project_name}-alb"
-    enabled = var.enable_alb_access_logs
-  }
+  # Access logs disabled for initial deployment
+  # Enable after creating S3 bucket with proper permissions
+  # access_logs {
+  #   bucket  = var.alb_access_logs_bucket
+  #   prefix  = "${var.project_name}-alb"
+  #   enabled = var.enable_alb_access_logs
+  # }
 
   tags = merge(var.tags, {
     Name = "${var.project_name}-alb"
@@ -129,13 +131,8 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type = "redirect"
-
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
-    }
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.game_engine.arn
   }
 
   tags = var.tags

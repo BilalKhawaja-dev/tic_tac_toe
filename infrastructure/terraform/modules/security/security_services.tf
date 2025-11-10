@@ -44,17 +44,17 @@ resource "aws_securityhub_account" "main" {
 # Security Hub Standards Subscriptions
 resource "aws_securityhub_standards_subscription" "aws_foundational" {
   count         = var.enable_security_hub ? 1 : 0
-  standards_arn = "arn:aws:securityhub:::ruleset/finding-format/aws-foundational-security-standard/v/1.0.0"
+  standards_arn = "arn:aws:securityhub:eu-west-2::standards/aws-foundational-security-best-practices/v/1.0.0"
   depends_on    = [aws_securityhub_account.main]
 }
 
 resource "aws_securityhub_standards_subscription" "cis" {
   count         = var.enable_security_hub ? 1 : 0
-  standards_arn = "arn:aws:securityhub:::ruleset/finding-format/cis-aws-foundations-benchmark/v/1.2.0"
+  standards_arn = "arn:aws:securityhub:eu-west-2::standards/cis-aws-foundations-benchmark/v/1.2.0"
   depends_on    = [aws_securityhub_account.main]
 }
 
-# Config Configuration Recorder
+# Config Configuration Recorder (must be created before delivery channel)
 resource "aws_config_configuration_recorder" "main" {
   count    = var.enable_config ? 1 : 0
   name     = "${var.project_name}-config-recorder"
@@ -64,11 +64,9 @@ resource "aws_config_configuration_recorder" "main" {
     all_supported                 = true
     include_global_resource_types = true
   }
-
-  depends_on = [aws_config_delivery_channel.main]
 }
 
-# Config Delivery Channel
+# Config Delivery Channel (depends on recorder)
 resource "aws_config_delivery_channel" "main" {
   count          = var.enable_config ? 1 : 0
   name           = "${var.project_name}-config-delivery-channel"
@@ -77,6 +75,8 @@ resource "aws_config_delivery_channel" "main" {
   snapshot_delivery_properties {
     delivery_frequency = "TwentyFour_Hours"
   }
+  
+  depends_on = [aws_config_configuration_recorder.main]
 }
 
 # S3 Bucket for Config
@@ -211,7 +211,7 @@ resource "aws_iam_role" "config" {
 resource "aws_iam_role_policy_attachment" "config" {
   count      = var.enable_config ? 1 : 0
   role       = aws_iam_role.config[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/ConfigRole"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"
 }
 
 # IAM Access Analyzer
@@ -261,8 +261,8 @@ resource "aws_backup_plan" "main" {
     schedule          = "cron(0 5 ? * * *)" # Daily at 5 AM UTC
 
     lifecycle {
-      cold_storage_after = 30
-      delete_after       = var.backup_retention_days
+      delete_after = var.backup_retention_days
+      # cold_storage_after removed - must be 90+ days apart from delete_after
     }
 
     recovery_point_tags = merge(var.tags, {
@@ -276,7 +276,7 @@ resource "aws_backup_plan" "main" {
     schedule          = "cron(0 5 ? * SUN *)" # Weekly on Sunday at 5 AM UTC
 
     lifecycle {
-      cold_storage_after = 30
+      cold_storage_after = 90  # Must be 90+ days before delete
       delete_after       = 365 # Keep weekly backups for 1 year
     }
 

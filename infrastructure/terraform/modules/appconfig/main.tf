@@ -269,7 +269,7 @@ resource "aws_sns_topic" "config_alerts" {
 
 # Lambda Function for Configuration Change Notifications
 resource "aws_lambda_function" "config_change_handler" {
-  filename         = "config_change_handler.zip"
+  filename         = data.archive_file.config_change_handler.output_path
   function_name    = "${var.application_name}-config-change-handler"
   role             = aws_iam_role.lambda_role.arn
   handler          = "index.handler"

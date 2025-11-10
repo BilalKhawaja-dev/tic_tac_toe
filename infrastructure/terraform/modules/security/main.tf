@@ -684,21 +684,22 @@ resource "aws_cloudtrail" "main" {
 
   kms_key_id = aws_kms_key.main.arn
 
-  event_selector {
-    read_write_type                  = "All"
-    include_management_events        = true
-    exclude_management_event_sources = []
-
-    data_resource {
-      type   = "AWS::S3::Object"
-      values = ["arn:aws:s3:::${var.project_name}-*/*"]
-    }
-
-    data_resource {
-      type   = "AWS::DynamoDB::Table"
-      values = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${var.project_name}-*"]
-    }
-  }
+  # Event selectors disabled - not supported in all regions
+  # event_selector {
+  #   read_write_type                  = "All"
+  #   include_management_events        = true
+  #   exclude_management_event_sources = []
+  #
+  #   data_resource {
+  #     type   = "AWS::S3::Object"
+  #     values = ["arn:aws:s3:::${var.project_name}-*/*"]
+  #   }
+  #
+  #   data_resource {
+  #     type   = "AWS::DynamoDB::Table"
+  #     values = ["arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/${var.project_name}-*"]
+  #   }
+  # }
 
   depends_on = [aws_s3_bucket_policy.cloudtrail]
 

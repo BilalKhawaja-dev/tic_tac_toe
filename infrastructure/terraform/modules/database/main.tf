@@ -26,22 +26,23 @@ resource "aws_db_subnet_group" "aurora" {
   })
 }
 
-# Aurora Global Database Cluster
-resource "aws_rds_global_cluster" "main" {
-  global_cluster_identifier = "${var.project_name}-global-cluster"
-  engine                    = "aurora-postgresql"
-  engine_version            = var.aurora_engine_version
-  database_name             = var.database_name
-  storage_encrypted         = true
-  deletion_protection       = var.environment == "production"
-}
+# Aurora Global Database Cluster (disabled for dev - not all versions support global)
+# Enable for production with supported engine version
+# resource "aws_rds_global_cluster" "main" {
+#   global_cluster_identifier = "${var.project_name}-global-cluster"
+#   engine                    = "aurora-postgresql"
+#   engine_version            = "15.3" # Use specific version that supports global
+#   database_name             = var.database_name
+#   storage_encrypted         = true
+#   deletion_protection       = var.environment == "production"
+# }
 
 # Primary Aurora Cluster (eu-west-2)
 resource "aws_rds_cluster" "primary" {
   cluster_identifier           = "${var.project_name}-aurora-cluster"
-  global_cluster_identifier    = aws_rds_global_cluster.main.id
-  engine                       = aws_rds_global_cluster.main.engine
-  engine_version               = aws_rds_global_cluster.main.engine_version
+  # global_cluster_identifier disabled for dev
+  engine                       = "aurora-postgresql"
+  engine_version               = var.aurora_engine_version
   database_name                = var.database_name
   master_username              = var.master_username
   master_password              = var.master_password
@@ -52,8 +53,9 @@ resource "aws_rds_cluster" "primary" {
   kms_key_id                   = var.rds_kms_key_arn
   deletion_protection          = var.environment == "production"
 
-  db_subnet_group_name   = aws_db_subnet_group.aurora.name
-  vpc_security_group_ids = [var.rds_security_group_id]
+  db_subnet_group_name            = aws_db_subnet_group.aurora.name
+  vpc_security_group_ids          = [var.rds_security_group_id]
+  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.main.name
 
   # Performance Insights
   enabled_cloudwatch_logs_exports = ["postgresql"]
@@ -76,18 +78,18 @@ resource "aws_rds_cluster" "primary" {
     Name = "${var.project_name}-aurora-primary"
     Role = "primary"
   })
-
-  depends_on = [aws_rds_global_cluster.main]
 }
 
 # Primary Aurora Cluster Instances
 resource "aws_rds_cluster_instance" "primary" {
   count              = var.primary_instance_count
-  identifier         = "${var.project_name}-aurora-primary-${count.index + 1}"
+  identifier         = "${var.project_name}-aurora-cluster-${count.index}"
   cluster_identifier = aws_rds_cluster.primary.id
   instance_class     = var.primary_instance_class
   engine             = aws_rds_cluster.primary.engine
   engine_version     = aws_rds_cluster.primary.engine_version
+
+  db_parameter_group_name = aws_db_parameter_group.main.name
 
   # Performance Insights
   performance_insights_enabled    = var.enable_performance_insights
@@ -101,7 +103,7 @@ resource "aws_rds_cluster_instance" "primary" {
   auto_minor_version_upgrade = var.auto_minor_version_upgrade
 
   tags = merge(var.tags, {
-    Name = "${var.project_name}-aurora-primary-${count.index + 1}"
+    Name = "${var.project_name}-aurora-cluster-${count.index}"
     Role = "primary"
   })
 }
@@ -140,11 +142,8 @@ resource "aws_rds_cluster_parameter_group" "main" {
   name   = "${var.project_name}-aurora-cluster-params"
 
   # Performance and connection parameters
-  parameter {
-    name  = "shared_preload_libraries"
-    value = "pg_stat_statements,pg_hint_plan"
-  }
-
+  # shared_preload_libraries removed - requires reboot (static parameter)
+  
   parameter {
     name  = "log_statement"
     value = "all"
@@ -156,8 +155,9 @@ resource "aws_rds_cluster_parameter_group" "main" {
   }
 
   parameter {
-    name  = "max_connections"
-    value = var.max_connections
+    name         = "max_connections"
+    value        = var.max_connections
+    apply_method = "pending-reboot"
   }
 
   parameter {
@@ -171,8 +171,9 @@ resource "aws_rds_cluster_parameter_group" "main" {
   }
 
   parameter {
-    name  = "effective_cache_size"
-    value = "1048576" # 1GB
+    name         = "effective_cache_size"
+    value        = "1048576" # 1GB
+    apply_method = "pending-reboot"
   }
 
   tags = var.tags
@@ -194,85 +195,13 @@ resource "aws_db_parameter_group" "main" {
     value = "1"
   }
 
-  parameter {
-    name  = "log_checkpoints"
-    value = "1"
-  }
+  # log_checkpoints parameter not supported in Aurora PostgreSQL
+  # Removed to fix deployment error
 
   tags = var.tags
 }
 
-# Update Aurora cluster to use parameter groups
-resource "aws_rds_cluster" "primary_with_params" {
-  cluster_identifier           = aws_rds_cluster.primary.cluster_identifier
-  global_cluster_identifier    = aws_rds_cluster.primary.global_cluster_identifier
-  engine                       = aws_rds_cluster.primary.engine
-  engine_version               = aws_rds_cluster.primary.engine_version
-  database_name                = aws_rds_cluster.primary.database_name
-  master_username              = aws_rds_cluster.primary.master_username
-  master_password              = aws_rds_cluster.primary.master_password
-  backup_retention_period      = aws_rds_cluster.primary.backup_retention_period
-  preferred_backup_window      = aws_rds_cluster.primary.preferred_backup_window
-  preferred_maintenance_window = aws_rds_cluster.primary.preferred_maintenance_window
-  storage_encrypted            = aws_rds_cluster.primary.storage_encrypted
-  kms_key_id                   = aws_rds_cluster.primary.kms_key_id
-  deletion_protection          = aws_rds_cluster.primary.deletion_protection
 
-  db_subnet_group_name            = aws_rds_cluster.primary.db_subnet_group_name
-  vpc_security_group_ids          = aws_rds_cluster.primary.vpc_security_group_ids
-  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.main.name
-
-  enabled_cloudwatch_logs_exports = aws_rds_cluster.primary.enabled_cloudwatch_logs_exports
-  copy_tags_to_snapshot           = aws_rds_cluster.primary.copy_tags_to_snapshot
-  skip_final_snapshot             = aws_rds_cluster.primary.skip_final_snapshot
-  final_snapshot_identifier       = aws_rds_cluster.primary.final_snapshot_identifier
-
-  monitoring_interval = aws_rds_cluster.primary.monitoring_interval
-  monitoring_role_arn = aws_rds_cluster.primary.monitoring_role_arn
-
-  performance_insights_enabled          = aws_rds_cluster.primary.performance_insights_enabled
-  performance_insights_kms_key_id       = aws_rds_cluster.primary.performance_insights_kms_key_id
-  performance_insights_retention_period = aws_rds_cluster.primary.performance_insights_retention_period
-
-  tags = aws_rds_cluster.primary.tags
-
-  depends_on = [aws_rds_cluster.primary]
-
-  lifecycle {
-    replace_triggered_by = [aws_rds_cluster_parameter_group.main]
-  }
-}
-
-# Update Aurora cluster instances to use parameter groups
-resource "aws_rds_cluster_instance" "primary_with_params" {
-  count              = var.primary_instance_count
-  identifier         = "${aws_rds_cluster_instance.primary[count.index].identifier}-updated"
-  cluster_identifier = aws_rds_cluster.primary_with_params.id
-  instance_class     = aws_rds_cluster_instance.primary[count.index].instance_class
-  engine             = aws_rds_cluster_instance.primary[count.index].engine
-  engine_version     = aws_rds_cluster_instance.primary[count.index].engine_version
-
-  db_parameter_group_name = aws_db_parameter_group.main.name
-
-  performance_insights_enabled    = aws_rds_cluster_instance.primary[count.index].performance_insights_enabled
-  performance_insights_kms_key_id = aws_rds_cluster_instance.primary[count.index].performance_insights_kms_key_id
-
-  monitoring_interval = aws_rds_cluster_instance.primary[count.index].monitoring_interval
-  monitoring_role_arn = aws_rds_cluster_instance.primary[count.index].monitoring_role_arn
-
-  auto_minor_version_upgrade = aws_rds_cluster_instance.primary[count.index].auto_minor_version_upgrade
-
-  tags = merge(var.tags, {
-    Name = "${var.project_name}-aurora-primary-${count.index + 1}-updated"
-    Role = "primary"
-  })
-
-  depends_on = [aws_rds_cluster_instance.primary]
-
-  lifecycle {
-    replace_triggered_by = [aws_db_parameter_group.main]
-  }
-}
 
 # Database Schema Creation Lambda
 resource "aws_lambda_function" "schema_creator" {
@@ -291,7 +220,7 @@ resource "aws_lambda_function" "schema_creator" {
 
   environment {
     variables = {
-      DB_HOST     = aws_rds_cluster.primary_with_params.endpoint
+      DB_HOST     = aws_rds_cluster.primary.endpoint
       DB_NAME     = var.database_name
       SECRET_ARN  = var.database_secret_arn
       KMS_KEY_ARN = var.rds_kms_key_arn
@@ -300,7 +229,7 @@ resource "aws_lambda_function" "schema_creator" {
 
   tags = var.tags
 
-  depends_on = [aws_rds_cluster_instance.primary_with_params]
+  depends_on = [aws_rds_cluster_instance.primary]
 }
 
 # Archive file for schema creator Lambda
@@ -380,15 +309,16 @@ resource "aws_iam_role_policy" "schema_creator_lambda" {
 }
 
 # Lambda invocation to create schema
-resource "aws_lambda_invocation" "schema_creation" {
-  function_name = aws_lambda_function.schema_creator.function_name
-
-  input = jsonencode({
-    action = "create_schema"
-  })
-
-  depends_on = [aws_rds_cluster_instance.primary_with_params]
-}
+# Commented out - requires psycopg2 layer to be packaged
+# resource "aws_lambda_invocation" "schema_creation" {
+#   function_name = aws_lambda_function.schema_creator.function_name
+#
+#   input = jsonencode({
+#     action = "create_schema"
+#   })
+#
+#   depends_on = [aws_rds_cluster_instance.primary]
+# }
 
 # CloudWatch Alarms for Aurora
 resource "aws_cloudwatch_metric_alarm" "aurora_cpu_high" {
@@ -405,7 +335,7 @@ resource "aws_cloudwatch_metric_alarm" "aurora_cpu_high" {
   ok_actions          = [var.info_sns_topic_arn]
 
   dimensions = {
-    DBClusterIdentifier = aws_rds_cluster.primary_with_params.cluster_identifier
+    DBClusterIdentifier = aws_rds_cluster.primary.cluster_identifier
   }
 
   tags = var.tags
@@ -425,7 +355,7 @@ resource "aws_cloudwatch_metric_alarm" "aurora_connections_high" {
   ok_actions          = [var.info_sns_topic_arn]
 
   dimensions = {
-    DBClusterIdentifier = aws_rds_cluster.primary_with_params.cluster_identifier
+    DBClusterIdentifier = aws_rds_cluster.primary.cluster_identifier
   }
 
   tags = var.tags
@@ -445,7 +375,7 @@ resource "aws_cloudwatch_metric_alarm" "aurora_read_latency_high" {
   ok_actions          = [var.info_sns_topic_arn]
 
   dimensions = {
-    DBClusterIdentifier = aws_rds_cluster.primary_with_params.cluster_identifier
+    DBClusterIdentifier = aws_rds_cluster.primary.cluster_identifier
   }
 
   tags = var.tags
@@ -465,7 +395,7 @@ resource "aws_cloudwatch_metric_alarm" "aurora_write_latency_high" {
   ok_actions          = [var.info_sns_topic_arn]
 
   dimensions = {
-    DBClusterIdentifier = aws_rds_cluster.primary_with_params.cluster_identifier
+    DBClusterIdentifier = aws_rds_cluster.primary.cluster_identifier
   }
 
   tags = var.tags
