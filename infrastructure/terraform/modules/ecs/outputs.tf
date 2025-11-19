@@ -210,3 +210,52 @@ output "ecr_repository_url" {
   description = "Alias for ECR repository URL"
   value       = aws_ecr_repository.game_engine.repository_url
 }
+
+
+# Auth Service Outputs
+output "auth_service_name" {
+  description = "Name of the auth ECS service"
+  value       = aws_ecs_service.auth_service.name
+}
+
+output "auth_service_target_group_arn" {
+  description = "ARN of the auth service target group"
+  value       = aws_lb_target_group.auth_service.arn
+}
+
+output "auth_ecr_repository_url" {
+  description = "URL of the auth service ECR repository"
+  value       = data.aws_ecr_repository.auth_service.repository_url
+}
+
+# Leaderboard Service Outputs
+output "leaderboard_service_name" {
+  description = "Name of the leaderboard ECS service"
+  value       = aws_ecs_service.leaderboard_service.name
+}
+
+output "leaderboard_service_target_group_arn" {
+  description = "ARN of the leaderboard service target group"
+  value       = aws_lb_target_group.leaderboard_service.arn
+}
+
+output "leaderboard_ecr_repository_url" {
+  description = "URL of the leaderboard service ECR repository"
+  value       = aws_ecr_repository.leaderboard_service.repository_url
+}
+
+# Frontend Outputs
+output "frontend_service_name" {
+  description = "Name of the frontend ECS service"
+  value       = aws_ecs_service.frontend.name
+}
+
+output "frontend_target_group_arn" {
+  description = "ARN of the frontend target group"
+  value       = aws_lb_target_group.frontend.arn
+}
+
+output "frontend_ecr_repository_url" {
+  description = "URL of the frontend ECR repository"
+  value       = aws_ecr_repository.frontend.repository_url
+}

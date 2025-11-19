@@ -81,6 +81,12 @@ variable "database_secret_arn" {
   type        = string
 }
 
+variable "cognito_secret_arn" {
+  description = "ARN of the Cognito credentials secret"
+  type        = string
+  default     = ""
+}
+
 # DynamoDB Configuration
 variable "dynamodb_games_table" {
   description = "Name of the DynamoDB games table"
@@ -275,4 +281,110 @@ variable "warning_sns_topic_arn" {
 variable "info_sns_topic_arn" {
   description = "SNS topic ARN for info alerts"
   type        = string
+}
+
+
+# Auth Service Configuration
+variable "auth_service_cpu" {
+  description = "CPU units for auth service"
+  type        = number
+  default     = 256
+}
+
+variable "auth_service_memory" {
+  description = "Memory for auth service in MB"
+  type        = number
+  default     = 512
+}
+
+variable "auth_service_desired_count" {
+  description = "Desired number of auth service tasks"
+  type        = number
+  default     = 2
+}
+
+variable "auth_service_image_tag" {
+  description = "Docker image tag for auth service"
+  type        = string
+  default     = "latest"
+}
+
+variable "auth_service_log_group" {
+  description = "CloudWatch log group for auth service"
+  type        = string
+  default     = "/ecs/auth-service"
+}
+
+variable "cognito_user_pool_id" {
+  description = "Cognito User Pool ID"
+  type        = string
+  default     = ""
+}
+
+variable "cognito_client_id" {
+  description = "Cognito Client ID"
+  type        = string
+  default     = ""
+}
+
+# Leaderboard Service Configuration
+variable "leaderboard_service_cpu" {
+  description = "CPU units for leaderboard service"
+  type        = number
+  default     = 256
+}
+
+variable "leaderboard_service_memory" {
+  description = "Memory for leaderboard service in MB"
+  type        = number
+  default     = 512
+}
+
+variable "leaderboard_service_desired_count" {
+  description = "Desired number of leaderboard service tasks"
+  type        = number
+  default     = 2
+}
+
+variable "leaderboard_service_image_tag" {
+  description = "Docker image tag for leaderboard service"
+  type        = string
+  default     = "latest"
+}
+
+variable "leaderboard_service_log_group" {
+  description = "CloudWatch log group for leaderboard service"
+  type        = string
+  default     = "/ecs/leaderboard-service"
+}
+
+# Frontend Configuration
+variable "frontend_cpu" {
+  description = "CPU units for frontend"
+  type        = number
+  default     = 256
+}
+
+variable "frontend_memory" {
+  description = "Memory for frontend in MB"
+  type        = number
+  default     = 512
+}
+
+variable "frontend_desired_count" {
+  description = "Desired number of frontend tasks"
+  type        = number
+  default     = 2
+}
+
+variable "frontend_image_tag" {
+  description = "Docker image tag for frontend"
+  type        = string
+  default     = "latest"
+}
+
+variable "frontend_log_group" {
+  description = "CloudWatch log group for frontend"
+  type        = string
+  default     = "/ecs/frontend"
 }

@@ -1,5 +1,5 @@
 // Configuration Management
-const ConfigurationManager = require('../../shared/config-manager');
+// Note: ConfigurationManager is optional and loaded dynamically if available
 
 const config = {
   environment: process.env.NODE_ENV || 'development',
@@ -109,36 +109,9 @@ const config = {
 let configManager = null;
 
 async function initializeConfigManager() {
-  if (process.env.APPCONFIG_APPLICATION_ID && process.env.APPCONFIG_APP_SETTINGS_PROFILE_ID) {
-    try {
-      configManager = new ConfigurationManager({
-        applicationId: process.env.APPCONFIG_APPLICATION_ID,
-        environment: config.environment,
-        appSettingsProfileId: process.env.APPCONFIG_APP_SETTINGS_PROFILE_ID,
-        featureFlagsProfileId: process.env.APPCONFIG_FEATURE_FLAGS_PROFILE_ID
-      });
-
-      await configManager.initialize();
-
-      // Update config with AppConfig values
-      const gameSettings = configManager.getAppSetting('game', {});
-      const apiSettings = configManager.getAppSetting('api', {});
-      const websocketSettings = configManager.getAppSetting('websocket', {});
-
-      // Merge AppConfig settings
-      Object.assign(config.game, gameSettings);
-      Object.assign(config.rateLimit, {
-        max: apiSettings.rateLimitPerMinute || config.rateLimit.max,
-        windowMs: 60 * 1000 // 1 minute for rate limiting
-      });
-      Object.assign(config.websocket, websocketSettings);
-
-      console.log('Configuration manager initialized successfully');
-    } catch (error) {
-      console.warn('Failed to initialize configuration manager:', error.message);
-      console.log('Continuing with environment variables and defaults');
-    }
-  }
+  // AppConfig integration disabled for now - using environment variables only
+  console.log('Using environment variables for configuration');
+  return Promise.resolve();
 }
 
 // Get feature flag value

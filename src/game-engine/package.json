@@ -45,7 +45,7 @@
     "@aws-sdk/client-dynamodb": "^3.441.0",
     "@aws-sdk/lib-dynamodb": "^3.441.0",
     "@aws-sdk/client-secrets-manager": "^3.441.0",
-    "amazon-dax-client": "^1.2.12"
+    "amazon-dax-client": "^1.2.10"
   },
   "devDependencies": {
     "jest": "^29.7.0",

@@ -3,6 +3,7 @@
 
 const { Pool } = require('pg');
 const config = require('../config');
+const logger = require('../utils/logger');
 
 class RankingManager {
   constructor() {
@@ -14,13 +15,16 @@ class RankingManager {
    */
   async initialize() {
     try {
+      // Ensure password is a string
+      const password = String(config.database.password || '');
+      
       this.pool = new Pool({
         host: config.database.host,
         port: config.database.port,
         database: config.database.name,
         user: config.database.user,
-        password: config.database.password,
-        max: config.database.maxConnections || 20,
+        password: password,
+        max: config.database.pool?.max || 20,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 5000,
         ssl: config.database.ssl ? {
@@ -35,12 +39,110 @@ class RankingManager {
       // Test connection
       const client = await this.pool.connect();
       await client.query('SELECT NOW()');
+      
+      // Initialize schema if needed
+      await this.initializeSchema(client);
+      
       client.release();
 
-      console.log('RankingManager initialized');
+      console.log('RankingManager initialized successfully');
+      logger.info('Database connection established', {
+        host: config.database.host,
+        port: config.database.port,
+        database: config.database.name
+      });
     } catch (error) {
+      logger.error('Failed to initialize RankingManager', {
+        error: error.message,
+        code: error.code,
+        host: config.database.host,
+        port: config.database.port,
+        database: config.database.name,
+        user: config.database.user,
+        hasPassword: !!config.database.password,
+        passwordLength: config.database.password ? config.database.password.length : 0
+      });
       console.error('Failed to initialize RankingManager:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Initialize database schema if tables don't exist
+   */
+  async initializeSchema(client) {
+    try {
+      logger.info('Checking database schema...');
+      
+      // Create users table if it doesn't exist
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          username VARCHAR(50) UNIQUE NOT NULL,
+          email VARCHAR(255) UNIQUE NOT NULL,
+          display_name VARCHAR(100),
+          avatar_url VARCHAR(500),
+          region VARCHAR(50) DEFAULT 'UNKNOWN',
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+      
+      // Create user_stats table if it doesn't exist
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS user_stats (
+          user_id UUID PRIMARY KEY,
+          games_played INTEGER DEFAULT 0,
+          games_won INTEGER DEFAULT 0,
+          games_lost INTEGER DEFAULT 0,
+          games_drawn INTEGER DEFAULT 0,
+          current_streak INTEGER DEFAULT 0,
+          best_streak INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+      
+      // Check if we have any users, if not, create test data
+      const result = await client.query('SELECT COUNT(*) FROM users');
+      const userCount = parseInt(result.rows[0].count);
+      
+      if (userCount === 0) {
+        logger.info('No users found, creating test data...');
+        
+        // Insert test users
+        await client.query(`
+          INSERT INTO users (username, email, display_name, region)
+          VALUES 
+            ('testplayer1', 'test1@example.com', 'Test Player 1', 'NA'),
+            ('testplayer2', 'test2@example.com', 'Test Player 2', 'EU'),
+            ('testplayer3', 'test3@example.com', 'Test Player 3', 'ASIA')
+        `);
+        
+        // Insert test stats
+        await client.query(`
+          INSERT INTO user_stats (user_id, games_played, games_won, games_lost)
+          SELECT user_id, 10, 7, 3 FROM users WHERE username = 'testplayer1'
+        `);
+        
+        await client.query(`
+          INSERT INTO user_stats (user_id, games_played, games_won, games_lost)
+          SELECT user_id, 15, 10, 5 FROM users WHERE username = 'testplayer2'
+        `);
+        
+        await client.query(`
+          INSERT INTO user_stats (user_id, games_played, games_won, games_lost)
+          SELECT user_id, 20, 12, 8 FROM users WHERE username = 'testplayer3'
+        `);
+        
+        logger.info('Test data created successfully');
+      }
+      
+      logger.info('Database schema initialized');
+    } catch (error) {
+      logger.error('Failed to initialize schema', { error: error.message });
+      // Don't throw - service can still start even if schema init fails
     }
   }
 
@@ -94,7 +196,7 @@ class RankingManager {
           current_streak,
           best_streak,
           global_rank,
-          ROUND((1 - percentile) * 100, 2) as top_percentage,
+          ROUND(CAST((1 - percentile) * 100 AS NUMERIC), 2) as top_percentage,
           last_game_at
         FROM global_leaderboard
         ORDER BY global_rank

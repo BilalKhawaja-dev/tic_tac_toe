@@ -11,11 +11,18 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/gaming_platform
-      - REDIS_URL=redis://redis:6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=gaming_platform
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - gaming-network
     restart: unless-stopped
@@ -30,9 +37,21 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3001
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/gaming_platform
-      - REDIS_URL=redis://redis:6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=gaming_platform
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
       - JWT_SECRET=dev-secret-change-in-production
+      - COGNITO_USER_POOL_ID=local-dev
+      - COGNITO_CLIENT_ID=local-dev
+      - COGNITO_DOMAIN=http://localhost:3001
+      - COGNITO_JWKS_URI=http://localhost:3001/.well-known/jwks.json
+      - COGNITO_ISSUER=http://localhost:3001
+      - COGNITO_CALLBACK_URL=http://localhost:8080/callback
+      - COGNITO_LOGOUT_URL=http://localhost:8080
     depends_on:
       - postgres
       - redis
@@ -50,11 +69,18 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3002
-      - DATABASE_URL=postgresql://postgres:password@postgres:5432/gaming_platform
-      - REDIS_URL=redis://redis:6379
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=gaming_platform
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - gaming-network
     restart: unless-stopped
@@ -64,6 +90,10 @@ services:
     build:
       context: ./src/frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:3000
+        VITE_AUTH_URL: http://localhost:3001
+        VITE_LEADERBOARD_URL: http://localhost:3002
     ports:
       - "8080:8080"
     environment:

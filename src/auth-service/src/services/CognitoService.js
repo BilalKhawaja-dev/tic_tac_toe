@@ -20,6 +20,15 @@ const { ValidationError, NotFoundError, ConflictError } = require('../utils/erro
 
 class CognitoService {
   constructor() {
+    // Use mock mode in local development if Cognito is not configured
+    if (config.environment === 'development' && !config.cognito.userPoolId) {
+      this.mockMode = true;
+      logger.info('Running in mock Cognito mode for local development');
+      logger.warn('Cognito operations will be simulated - not suitable for production');
+      return;
+    }
+    
+    this.mockMode = false;
     this.cognitoClient = new CognitoIdentityProviderClient({
       region: config.aws.region
     });
@@ -27,10 +36,28 @@ class CognitoService {
     this.userPoolId = config.cognito.userPoolId;
     this.clientId = config.cognito.clientId;
     this.clientSecret = config.cognito.clientSecret;
+    
+    logger.info('Cognito service initialized', {
+      userPoolId: this.userPoolId,
+      region: config.aws.region
+    });
   }
 
   // Get user from Cognito
   async getCognitoUser(username) {
+    if (this.mockMode) {
+      logger.debug('Mock: getCognitoUser', { username });
+      return {
+        Username: username,
+        UserAttributes: [
+          { Name: 'sub', Value: `mock-${username}` },
+          { Name: 'email', Value: `${username}@example.com` },
+          { Name: 'email_verified', Value: 'true' }
+        ],
+        UserStatus: 'CONFIRMED'
+      };
+    }
+    
     try {
       const command = new AdminGetUserCommand({
         UserPoolId: this.userPoolId,

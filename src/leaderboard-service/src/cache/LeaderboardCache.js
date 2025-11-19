@@ -38,8 +38,17 @@ class LeaderboardCache {
         console.log('Redis connected successfully');
       });
 
-      await this.redis.ping();
-      console.log('LeaderboardCache initialized');
+      // Wait for connection to be ready
+      await new Promise((resolve) => {
+        if (this.redis.status === 'ready') {
+          resolve();
+        } else {
+          this.redis.once('ready', resolve);
+        }
+      });
+      
+      console.log('LeaderboardCache initialized and ready');
+      return true;
     } catch (error) {
       console.error('Failed to initialize LeaderboardCache:', error);
       throw error;

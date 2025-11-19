@@ -108,8 +108,8 @@ resource "aws_lb_target_group" "game_engine" {
     enabled             = true
     healthy_threshold   = 2
     interval            = 30
-    matcher             = "200"
-    path                = "/health"
+    matcher             = "200,404"
+    path                = "/api/game/status"
     port                = "traffic-port"
     protocol            = "HTTP"
     timeout             = 10
@@ -131,8 +131,12 @@ resource "aws_lb_listener" "http" {
   protocol          = "HTTP"
 
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.game_engine.arn
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Service not found"
+      status_code  = "404"
+    }
   }
 
   tags = var.tags
@@ -155,11 +159,10 @@ resource "aws_lb_listener" "https" {
   tags = var.tags
 }
 
-# ALB Listener Rule for Game Engine
-resource "aws_lb_listener_rule" "game_engine" {
-  count        = var.ssl_certificate_arn != "" ? 1 : 0
-  listener_arn = aws_lb_listener.https[0].arn
-  priority     = 100
+# ALB Listener Rule for Game Engine (HTTP)
+resource "aws_lb_listener_rule" "game_engine_http" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 15
 
   action {
     type             = "forward"
@@ -168,7 +171,27 @@ resource "aws_lb_listener_rule" "game_engine" {
 
   condition {
     path_pattern {
-      values = ["/api/game/*", "/health", "/"]
+      values = ["/api/game/*"]
+    }
+  }
+
+  tags = var.tags
+}
+
+# ALB Listener Rule for Game Engine (HTTPS)
+resource "aws_lb_listener_rule" "game_engine_https" {
+  count        = var.ssl_certificate_arn != "" ? 1 : 0
+  listener_arn = aws_lb_listener.https[0].arn
+  priority     = 15
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.game_engine.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api/game/*"]
     }
   }
 
@@ -333,15 +356,19 @@ resource "aws_ecs_task_definition" "game_engine" {
 
       secrets = [
         {
-          name      = "DATABASE_SECRET_ARN"
-          valueFrom = var.database_secret_arn
+          name      = "DB_PASSWORD"
+          valueFrom = "${var.database_secret_arn}:password::"
         },
         {
-          name      = "REDIS_SECRET_ARN"
+          name      = "DB_USER"
+          valueFrom = "${var.database_secret_arn}:username::"
+        },
+        {
+          name      = "REDIS_PASSWORD"
           valueFrom = var.redis_secret_arn
         },
         {
-          name      = "JWT_SECRET_ARN"
+          name      = "JWT_SECRET"
           valueFrom = var.jwt_secret_arn
         }
       ]

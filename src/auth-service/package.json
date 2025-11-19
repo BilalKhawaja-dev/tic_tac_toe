@@ -35,7 +35,7 @@
     "express-rate-limit": "^7.1.5",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
-    "jwks-client": "^3.0.1",
+    "jwks-rsa": "^3.0.1",
     "aws-sdk": "^2.1490.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.441.0",
     "@aws-sdk/client-cognito-identity": "^3.441.0",

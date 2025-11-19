@@ -10,8 +10,6 @@ require('dotenv').config();
 
 const logger = require('./utils/logger');
 const config = require('./config');
-const DatabaseManager = require('./database/DatabaseManager');
-const CacheManager = require('./cache/CacheManager');
 const CognitoService = require('./services/CognitoService');
 const JWTService = require('./services/JWTService');
 const UserService = require('./services/UserService');
@@ -31,8 +29,6 @@ class AuthenticationServer {
     this.app = express();
     this.server = null;
     
-    this.dbManager = null;
-    this.cacheManager = null;
     this.cognitoService = null;
     this.jwtService = null;
     this.userService = null;
@@ -44,20 +40,10 @@ class AuthenticationServer {
     try {
       logger.info('Initializing Authentication Server...');
 
-      // Initialize database connection
-      this.dbManager = new DatabaseManager();
-      await this.dbManager.initialize();
-      logger.info('Database connection established');
-
-      // Initialize cache connection
-      this.cacheManager = new CacheManager();
-      await this.cacheManager.initialize();
-      logger.info('Cache connection established');
-
       // Initialize services
       this.cognitoService = new CognitoService();
       this.jwtService = new JWTService();
-      this.userService = new UserService(this.dbManager, this.cacheManager);
+      this.userService = new UserService();
 
       // Setup Express middleware
       this.setupMiddleware();
@@ -104,17 +90,17 @@ class AuthenticationServer {
     this.app.use(compression());
 
     // Cookie parser
-    this.app.use(cookieParser(config.session.secret));
+    this.app.use(cookieParser(config.security.jwtSecret));
 
     // Session configuration
     this.app.use(session({
-      secret: config.session.secret,
+      secret: config.security.jwtSecret,
       resave: false,
       saveUninitialized: false,
       cookie: {
         secure: config.environment === 'production',
         httpOnly: true,
-        maxAge: config.session.maxAge
+        maxAge: config.security.sessionTimeout
       }
     }));
 
@@ -142,9 +128,7 @@ class AuthenticationServer {
     this.app.locals.services = {
       cognito: this.cognitoService,
       jwt: this.jwtService,
-      user: this.userService,
-      db: this.dbManager,
-      cache: this.cacheManager
+      user: this.userService
     };
   }
 
@@ -250,18 +234,6 @@ class AuthenticationServer {
         this.server.close(() => {
           logger.info('HTTP server closed');
         });
-      }
-
-      // Close database connections
-      if (this.dbManager) {
-        await this.dbManager.close();
-        logger.info('Database connections closed');
-      }
-
-      // Close cache connections
-      if (this.cacheManager) {
-        await this.cacheManager.close();
-        logger.info('Cache connections closed');
       }
 
       clearTimeout(shutdownTimeout);

@@ -34,19 +34,25 @@ class LeaderboardService {
       logger.info('Initializing Leaderboard Service...');
 
       // Initialize database and cache
+      logger.info('Initializing database...');
       await this.rankingManager.initialize();
+      logger.info('Initializing cache...');
       await this.cache.initialize();
 
       // Setup Express middleware
+      logger.info('Setting up middleware...');
       this.setupMiddleware();
 
       // Setup routes
+      logger.info('Setting up routes...');
       this.setupRoutes();
 
       // Setup error handling
+      logger.info('Setting up error handling...');
       this.setupErrorHandling();
 
       // Setup scheduled jobs
+      logger.info('Setting up scheduled jobs...');
       this.setupScheduledJobs();
 
       // Make services available to routes
@@ -54,8 +60,10 @@ class LeaderboardService {
       this.app.locals.cache = this.cache;
 
       logger.info('Leaderboard Service initialized successfully');
+      return true;
     } catch (error) {
       logger.error('Failed to initialize Leaderboard Service:', error);
+      console.error('Failed to initialize Leaderboard Service:', error);
       throw error;
     }
   }
@@ -197,16 +205,32 @@ class LeaderboardService {
    */
   async start() {
     try {
+      logger.info('Starting server initialization...');
       await this.initialize();
+      logger.info('Initialization complete, starting HTTP server...');
 
-      this.server = this.app.listen(config.server.port, config.server.host, () => {
-        logger.info(`Leaderboard Service listening on ${config.server.host}:${config.server.port}`);
+      const port = config.server.port;
+      const host = config.server.host;
+      
+      logger.info(`Attempting to listen on ${host}:${port}`);
+
+      this.server = this.app.listen(port, host, () => {
+        console.log(`Leaderboard Service listening on ${host}:${port}`);
+        logger.info(`Leaderboard Service listening on ${host}:${port}`);
         logger.info(`Environment: ${config.server.env}`);
       });
+
+      this.server.on('error', (error) => {
+        logger.error('Server error:', error);
+        console.error('Server error:', error);
+      });
+
+      logger.info('Server listen() called, waiting for callback...');
 
       return this.server;
     } catch (error) {
       logger.error('Failed to start Leaderboard Service:', error);
+      console.error('Failed to start Leaderboard Service:', error);
       throw error;
     }
   }
