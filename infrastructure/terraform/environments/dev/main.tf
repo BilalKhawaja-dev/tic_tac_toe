@@ -43,13 +43,13 @@ module "security" {
   database_password = var.database_password
   redis_auth_token  = var.redis_auth_token
   jwt_signing_key   = var.jwt_signing_key
-  
+
   # Disable problematic features for dev
-  enable_guardduty                = false  # Already exists in account
-  enable_security_hub             = false  # ARN format issues
-  enable_cloudtrail_insights      = false  # Not supported in region
-  enable_cloudtrail_data_events   = false  # Not supported in region
-  
+  enable_guardduty              = false # Already exists in account
+  enable_security_hub           = false # ARN format issues
+  enable_cloudtrail_insights    = false # Not supported in region
+  enable_cloudtrail_data_events = false # Not supported in region
+
   tags = var.common_tags
 }
 
@@ -82,7 +82,7 @@ module "database" {
   critical_sns_topic_arn        = module.monitoring.critical_sns_topic_arn
   warning_sns_topic_arn         = module.monitoring.warning_sns_topic_arn
   info_sns_topic_arn            = module.monitoring.info_sns_topic_arn
-  enable_global_tables          = false  # Disabled for dev - requires multi-region setup
+  enable_global_tables          = false # Disabled for dev - requires multi-region setup
   tags                          = var.common_tags
 }
 
