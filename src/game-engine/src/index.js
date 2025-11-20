@@ -122,8 +122,9 @@ class GameEngineServer {
   }
 
   setupRoutes() {
-    // Health check routes
+    // Health check routes - both at root and under /api/game for ALB
     this.app.use('/health', healthRoutes);
+    this.app.use('/api/game/health', healthRoutes);
 
     // Game API routes
     this.app.use('/api/game', gameRoutes(this.gameEngine));

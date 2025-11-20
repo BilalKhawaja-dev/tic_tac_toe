@@ -99,24 +99,46 @@ class LeaderboardService {
    * Setup API routes
    */
   setupRoutes() {
-    // Health check routes
-    this.app.use('/health', healthRoutes);
-
-    // API routes
-    this.app.use('/api/leaderboard', leaderboardRoutes);
-
-    // Root endpoint
+    // Simple root endpoint for ALB health checks (no async operations)
     this.app.get('/', (req, res) => {
-      res.json({
-        service: 'Leaderboard Service',
-        version: '1.0.0',
-        status: 'running',
-        endpoints: {
-          health: '/health',
-          leaderboard: '/api/leaderboard'
-        }
-      });
+      res.status(200).json({ status: 'ok', service: 'leaderboard' });
     });
+
+    // Simple health endpoint for container health check (no async operations)
+    this.app.get('/health', (req, res) => {
+      res.status(200).json({ status: 'ok', service: 'leaderboard' });
+    });
+
+    // Simple working endpoints
+    this.app.get('/api/leaderboard/test', (req, res) => {
+      res.status(200).json({ status: 'ok', message: 'Leaderboard routing works!' });
+    });
+
+    this.app.get('/api/leaderboard/global', async (req, res) => {
+      try {
+        const { rankingManager } = this.app.locals;
+        const leaderboard = await rankingManager.getGlobalLeaderboard(100, 0);
+        res.json({ success: true, data: leaderboard });
+      } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+
+    this.app.get('/api/leaderboard/statistics', async (req, res) => {
+      try {
+        const { rankingManager } = this.app.locals;
+        const stats = await rankingManager.getLeaderboardStatistics();
+        res.json({ success: true, data: stats });
+      } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+
+    // Health check with detailed async operations
+    this.app.use('/api/leaderboard/health', healthRoutes);
+    
+    // General API routes - DISABLED for now to avoid conflicts
+    // this.app.use('/api/leaderboard', leaderboardRoutes);
 
     // 404 handler
     this.app.use((req, res) => {

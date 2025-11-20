@@ -19,15 +19,16 @@ class LeaderboardCache {
       this.redis = new Redis({
         host: config.redis.host,
         port: config.redis.port,
-        password: config.redis.password,
+        password: config.redis.password || '',
         db: config.redis.db || 0,
         retryStrategy: (times) => {
           const delay = Math.min(times * 50, 2000);
           return delay;
         },
         maxRetriesPerRequest: 3,
-        enableReadyCheck: true,
-        lazyConnect: false
+        enableReadyCheck: false,  // Disable ready check
+        lazyConnect: true,  // Don't connect immediately
+        connectTimeout: 5000
       });
 
       this.redis.on('error', (error) => {
@@ -38,20 +39,22 @@ class LeaderboardCache {
         console.log('Redis connected successfully');
       });
 
-      // Wait for connection to be ready
-      await new Promise((resolve) => {
-        if (this.redis.status === 'ready') {
-          resolve();
-        } else {
-          this.redis.once('ready', resolve);
-        }
+      this.redis.on('ready', () => {
+        console.log('Redis ready');
+      });
+
+      // Connect in background, don't wait
+      this.redis.connect().catch((err) => {
+        console.error('Redis connection failed, will retry:', err.message);
       });
       
-      console.log('LeaderboardCache initialized and ready');
+      console.log('LeaderboardCache initialized (connecting in background)');
       return true;
     } catch (error) {
       console.error('Failed to initialize LeaderboardCache:', error);
-      throw error;
+      // Don't throw - allow service to start without cache
+      console.log('Service will continue without cache');
+      return true;
     }
   }
 

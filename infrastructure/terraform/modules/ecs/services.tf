@@ -400,7 +400,7 @@ resource "aws_ecs_task_definition" "leaderboard_service" {
       healthCheck = {
         command = [
           "CMD-SHELL",
-          "curl -f http://localhost:3002/health || exit 1"
+          "node -e \"require('http').get('http://localhost:3002/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})\""
         ]
         interval    = 30
         timeout     = 10
@@ -589,7 +589,7 @@ resource "aws_ecs_task_definition" "frontend" {
       healthCheck = {
         command = [
           "CMD-SHELL",
-          "curl -f http://localhost/ || exit 1"
+          "wget --quiet --tries=1 --spider http://localhost:8080/ || exit 1"
         ]
         interval    = 30
         timeout     = 10

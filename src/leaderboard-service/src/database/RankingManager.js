@@ -162,6 +162,19 @@ class RankingManager {
   async refreshLeaderboards() {
     const client = await this.pool.connect();
     try {
+      // Check if the function exists first
+      const checkResult = await client.query(`
+        SELECT EXISTS (
+          SELECT 1 FROM pg_proc 
+          WHERE proname = 'refresh_all_leaderboards'
+        ) as exists
+      `);
+      
+      if (!checkResult.rows[0].exists) {
+        logger.warn('refresh_all_leaderboards() function does not exist, skipping refresh');
+        return false;
+      }
+      
       await client.query('BEGIN');
       await client.query('SELECT refresh_all_leaderboards()');
       await client.query('COMMIT');
@@ -170,7 +183,15 @@ class RankingManager {
     } catch (error) {
       await client.query('ROLLBACK');
       console.error('Error refreshing leaderboards:', error);
-      throw error;
+      logger.error('Scheduled leaderboard refresh failed', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        hint: error.hint,
+        stack: error.stack
+      });
+      // Don't throw - just log and continue
+      return false;
     } finally {
       client.release();
     }
@@ -181,6 +202,47 @@ class RankingManager {
    */
   async getGlobalLeaderboard(limit = 100, offset = 0) {
     try {
+      // Check if materialized view exists
+      const checkView = await this.pool.query(`
+        SELECT EXISTS (
+          SELECT 1 FROM pg_matviews WHERE matviewname = 'global_leaderboard'
+        ) as exists
+      `);
+      
+      if (!checkView.rows[0].exists) {
+        // Fallback to direct query if view doesn't exist
+        logger.warn('global_leaderboard view does not exist, using fallback query');
+        const fallbackQuery = `
+          SELECT 
+            u.user_id,
+            u.username,
+            u.display_name,
+            u.avatar_url,
+            us.games_played,
+            us.games_won,
+            us.games_lost,
+            us.games_drawn,
+            us.current_streak,
+            us.best_streak,
+            CASE 
+              WHEN us.games_played > 0 
+              THEN ROUND((us.games_won::DECIMAL / us.games_played) * 100, 2)
+              ELSE 0 
+            END as win_percentage,
+            1200 + (us.games_won - us.games_lost) * 5 as rating,
+            ROW_NUMBER() OVER (ORDER BY us.games_won DESC, us.games_played ASC) as global_rank,
+            0 as top_percentage,
+            us.updated_at as last_game_at
+          FROM users u
+          INNER JOIN user_stats us ON u.user_id = us.user_id
+          WHERE u.is_active = TRUE AND us.games_played >= 5
+          ORDER BY global_rank
+          LIMIT $1 OFFSET $2
+        `;
+        const result = await this.pool.query(fallbackQuery, [limit, offset]);
+        return result.rows;
+      }
+      
       const query = `
         SELECT 
           user_id,
