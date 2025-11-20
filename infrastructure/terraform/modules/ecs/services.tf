@@ -116,6 +116,10 @@ resource "aws_ecs_task_definition" "auth_service" {
           value = data.aws_region.current.name
         },
         {
+          name  = "SECRET_ARN"
+          value = var.jwt_secret_arn
+        },
+        {
           name  = "COGNITO_USER_POOL_ID"
           value = var.cognito_user_pool_id
         },
@@ -350,6 +354,10 @@ resource "aws_ecs_task_definition" "leaderboard_service" {
         {
           name  = "AWS_REGION"
           value = data.aws_region.current.name
+        },
+        {
+          name  = "SECRET_ARN"
+          value = var.jwt_secret_arn
         },
         {
           name  = "DYNAMODB_LEADERBOARD_TABLE"

@@ -305,6 +305,10 @@ resource "aws_ecs_task_definition" "game_engine" {
           value = data.aws_region.current.name
         },
         {
+          name  = "SECRET_ARN"
+          value = var.jwt_secret_arn
+        },
+        {
           name  = "DYNAMODB_GAMES_TABLE"
           value = var.dynamodb_games_table
         },
