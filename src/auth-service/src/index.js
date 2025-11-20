@@ -29,6 +29,7 @@ class AuthenticationServer {
     this.app = express();
     this.server = null;
     
+    this.secretManager = null;
     this.cognitoService = null;
     this.jwtService = null;
     this.userService = null;
@@ -39,6 +40,9 @@ class AuthenticationServer {
   async initialize() {
     try {
       logger.info('Initializing Authentication Server...');
+
+      // Initialize SecretManager first
+      await this.initializeSecrets();
 
       // Initialize services
       this.cognitoService = new CognitoService();
@@ -60,6 +64,51 @@ class AuthenticationServer {
       logger.info('Authentication Server initialization completed');
     } catch (error) {
       logger.error('Failed to initialize Authentication Server:', error);
+      throw error;
+    }
+  }
+
+  async initializeSecrets() {
+    // Only initialize SecretManager if SECRET_ARN is provided
+    if (!config.aws.secretArn) {
+      logger.warn('SECRET_ARN not provided. Using environment variables for secrets.');
+      logger.warn('⚠️  WARNING: This is insecure for production. Configure AWS Secrets Manager.');
+      return;
+    }
+
+    try {
+      logger.info('Initializing SecretManager...');
+      
+      // Import SecretManager
+      const SecretManager = require('../../shared/secrets/SecretManager');
+      
+      // Create SecretManager instance with required keys
+      this.secretManager = new SecretManager(config.aws.secretArn, [
+        'jwtSecret',
+        'dbPassword'
+      ]);
+      
+      // Initialize and load secrets
+      await this.secretManager.initialize();
+      
+      // Update config with loaded secrets
+      config.security.jwtSecret = this.secretManager.get('jwtSecret');
+      config.database.password = this.secretManager.get('dbPassword');
+      
+      // Load Redis password if available
+      try {
+        const redisPassword = this.secretManager.get('redisPassword');
+        if (redisPassword) {
+          config.redis.password = redisPassword;
+        }
+      } catch (error) {
+        logger.warn('Redis password not found in secrets, using environment variable');
+      }
+      
+      logger.info('✅ Secrets loaded successfully from AWS Secrets Manager');
+    } catch (error) {
+      logger.error('❌ FATAL: Failed to load secrets from AWS Secrets Manager:', error.message);
+      logger.error('Service cannot start without valid secrets.');
       throw error;
     }
   }

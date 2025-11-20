@@ -91,12 +91,13 @@ const config = {
     enableHelmet: process.env.ENABLE_HELMET !== 'false',
     enableCors: process.env.ENABLE_CORS !== 'false',
     enableRateLimit: process.env.ENABLE_RATE_LIMIT !== 'false',
-    jwtSecret: process.env.JWT_SECRET || 'default-secret-change-in-production',
+    jwtSecret: null, // Will be loaded from Secrets Manager
     sessionTimeout: parseInt(process.env.SESSION_TIMEOUT) || 24 * 60 * 60 * 1000 // 24 hours
   },
 
   aws: {
     region: process.env.AWS_REGION || 'eu-west-2',
+    secretArn: process.env.SECRET_ARN || '', // Single secret containing all credentials
     secretsManager: {
       databaseSecret: process.env.DATABASE_SECRET_ARN || '',
       redisSecret: process.env.REDIS_SECRET_ARN || '',
