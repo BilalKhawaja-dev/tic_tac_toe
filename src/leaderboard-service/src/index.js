@@ -21,6 +21,7 @@ const healthRoutes = require('./routes/health');
 class LeaderboardService {
   constructor() {
     this.app = express();
+    this.secretManager = null;
     this.rankingManager = new RankingManager();
     this.cache = new LeaderboardCache();
     this.server = null;
@@ -32,6 +33,9 @@ class LeaderboardService {
   async initialize() {
     try {
       logger.info('Initializing Leaderboard Service...');
+
+      // Initialize SecretManager first
+      await this.initializeSecrets();
 
       // Initialize database and cache
       logger.info('Initializing database...');
@@ -64,6 +68,45 @@ class LeaderboardService {
     } catch (error) {
       logger.error('Failed to initialize Leaderboard Service:', error);
       console.error('Failed to initialize Leaderboard Service:', error);
+      throw error;
+    }
+  }
+
+  async initializeSecrets() {
+    if (!config.aws.secretArn) {
+      logger.warn('SECRET_ARN not provided. Using environment variables for secrets.');
+      logger.warn('⚠️  WARNING: This is insecure for production. Configure AWS Secrets Manager.');
+      config.database.password = process.env.DB_PASSWORD || '';
+      config.redis.password = process.env.REDIS_PASSWORD || '';
+      return;
+    }
+
+    try {
+      logger.info('Initializing SecretManager...');
+      const SecretManager = require('../../shared/secrets/SecretManager');
+      
+      this.secretManager = new SecretManager(config.aws.secretArn, [
+        'dbPassword'
+      ]);
+      
+      await this.secretManager.initialize();
+      
+      config.database.password = this.secretManager.get('dbPassword');
+      
+      try {
+        const redisPassword = this.secretManager.get('redisPassword');
+        if (redisPassword) {
+          config.redis.password = redisPassword;
+        }
+      } catch (error) {
+        logger.warn('Redis password not found in secrets, using environment variable');
+        config.redis.password = process.env.REDIS_PASSWORD || '';
+      }
+      
+      logger.info('✅ Secrets loaded successfully from AWS Secrets Manager');
+    } catch (error) {
+      logger.error('❌ FATAL: Failed to load secrets from AWS Secrets Manager:', error.message);
+      logger.error('Service cannot start without valid secrets.');
       throw error;
     }
   }

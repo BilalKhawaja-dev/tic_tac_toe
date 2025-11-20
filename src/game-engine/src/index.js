@@ -25,6 +25,7 @@ class GameEngineServer {
     this.server = http.createServer(this.app);
     this.wss = new WebSocket.Server({ server: this.server });
     
+    this.secretManager = null;
     this.gameEngine = null;
     this.wsManager = null;
     this.dbManager = null;
@@ -36,6 +37,9 @@ class GameEngineServer {
   async initialize() {
     try {
       logger.info('Initializing Game Engine Server...');
+
+      // Initialize SecretManager first
+      await this.initializeSecrets();
 
       // Initialize database connection
       this.dbManager = new DatabaseManager();
@@ -71,6 +75,44 @@ class GameEngineServer {
       logger.info('Game Engine Server initialization completed');
     } catch (error) {
       logger.error('Failed to initialize Game Engine Server:', error);
+      throw error;
+    }
+  }
+
+  async initializeSecrets() {
+    if (!config.aws.secretArn) {
+      logger.warn('SECRET_ARN not provided. Using environment variables for secrets.');
+      logger.warn('⚠️  WARNING: This is insecure for production. Configure AWS Secrets Manager.');
+      return;
+    }
+
+    try {
+      logger.info('Initializing SecretManager...');
+      const SecretManager = require('../../shared/secrets/SecretManager');
+      
+      this.secretManager = new SecretManager(config.aws.secretArn, [
+        'jwtSecret',
+        'dbPassword'
+      ]);
+      
+      await this.secretManager.initialize();
+      
+      config.security.jwtSecret = this.secretManager.get('jwtSecret');
+      config.database.password = this.secretManager.get('dbPassword');
+      
+      try {
+        const redisPassword = this.secretManager.get('redisPassword');
+        if (redisPassword) {
+          config.redis.password = redisPassword;
+        }
+      } catch (error) {
+        logger.warn('Redis password not found in secrets, using environment variable');
+      }
+      
+      logger.info('✅ Secrets loaded successfully from AWS Secrets Manager');
+    } catch (error) {
+      logger.error('❌ FATAL: Failed to load secrets from AWS Secrets Manager:', error.message);
+      logger.error('Service cannot start without valid secrets.');
       throw error;
     }
   }

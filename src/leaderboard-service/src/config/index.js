@@ -25,7 +25,7 @@ const config = {
     port: parseInt(process.env.DB_PORT, 10) || 5432,
     name: process.env.DB_NAME || 'gaming_platform',
     user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD ? String(process.env.DB_PASSWORD) : '',
+    password: null, // Will be loaded from Secrets Manager
     pool: {
       min: 2,
       max: 10
@@ -35,13 +35,18 @@ const config = {
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT, 10) || 6379,
-    password: process.env.REDIS_PASSWORD || '',
+    password: null, // Will be loaded from Secrets Manager
     db: 0
   },
 
   dynamodb: {
     region: process.env.AWS_REGION || 'us-east-1',
     leaderboardTable: process.env.DYNAMODB_LEADERBOARD_TABLE || 'leaderboard'
+  },
+
+  aws: {
+    region: process.env.AWS_REGION || 'eu-west-2',
+    secretArn: process.env.SECRET_ARN || ''
   },
 
   cors: {
