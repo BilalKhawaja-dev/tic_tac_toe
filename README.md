@@ -42,21 +42,25 @@ A production-ready, cloud-native multiplayer tic-tac-toe gaming platform built o
 - Node.js 18.x
 - Docker
 
-### 1. Deploy Infrastructure
+### 1. Initialize Repository
 
 ```bash
-# One-command deployment
-./scripts/quick-start-terraform.sh
+./scripts/setup/init-repository.sh
+```
 
-# Or manual deployment
-./scripts/deploy-terraform.sh dev plan
-./scripts/deploy-terraform.sh dev apply
+### 2. Deploy Infrastructure
+
+```bash
+cd infrastructure/terraform/environments/dev
+terraform init
+terraform plan
+terraform apply
 ```
 
 **Time:** 30-45 minutes  
 **Cost:** ~$350-520/month for dev environment
 
-### 2. Configure Secrets
+### 3. Configure Secrets
 
 ```bash
 # Store database password
@@ -70,32 +74,28 @@ aws secretsmanager create-secret \
   --secret-string "your-jwt-secret-key"
 ```
 
-### 3. Deploy Application
+### 4. Deploy Services
 
 ```bash
-# Push to GitHub to trigger CI/CD
-git push origin main
-
-# Or manual deployment
-./scripts/deploy.sh dev
+./scripts/deploy/deploy-all-services.sh
 ```
 
-### 4. Verify Deployment
+### 5. Verify Deployment
 
 ```bash
-# Run smoke tests
-./scripts/smoke-tests.sh
-
 # Check service health
-aws ecs describe-services --cluster global-gaming-platform-cluster-dev
+./scripts/utils/check-all-services.sh
+
+# Run smoke tests
+./scripts/test/smoke-tests.sh
 ```
 
 ## 📚 Documentation
 
 ### Getting Started
-- [Terraform Deployment Guide](TERRAFORM_DEPLOYMENT_GUIDE.md) - Complete infrastructure setup
-- [Deployment Checklist](DEPLOYMENT_CHECKLIST.md) - Step-by-step deployment guide
-- [Handoff Document](HANDOFF_DOCUMENT.md) - Complete project handoff
+- [Deployment Guide](docs/DEPLOYMENT.md) - Complete deployment instructions
+- [Architecture Overview](docs/ARCHITECTURE.md) - System design and components
+- [Troubleshooting Guide](docs/TROUBLESHOOTING.md) - Common issues and solutions
 
 ### Development
 - [Local Setup Guide](docs/development/local-setup.md) - Developer environment setup
@@ -103,9 +103,8 @@ aws ecs describe-services --cluster global-gaming-platform-cluster-dev
 - [Configuration Management](docs/configuration-management.md) - Feature flags and settings
 
 ### Operations
-- [Architecture Review](docs/architecture-review.md) - System design and decisions
 - [Security Compliance](docs/security-compliance-checklist.md) - Security requirements
-- [Implementation Summary](IMPLEMENTATION_COMPLETE_SUMMARY.md) - What's been built
+- [Spec: Real Gameplay Integration](.kiro/specs/real-gameplay-integration/) - Feature implementation plan
 
 ## 🧪 Testing
 
@@ -260,12 +259,13 @@ cd tests/api-integration && npm test
 │   ├── api-integration/      # API integration tests
 │   └── *.sh                  # Test scripts
 ├── scripts/
-│   ├── deploy-terraform.sh   # Terraform deployment
-│   ├── deploy.sh             # Application deployment
-│   ├── rollback.sh           # Rollback script
-│   └── smoke-tests.sh        # Smoke tests
+│   ├── deploy/               # Deployment scripts
+│   ├── setup/                # Setup scripts
+│   ├── test/                 # Test scripts
+│   └── utils/                # Utility scripts
 ├── docs/                     # Documentation
-└── configs/                  # Configuration files
+├── configs/                  # Configuration files
+└── .kiro/specs/              # Feature specifications
 ```
 
 ## 🤝 Contributing
@@ -341,14 +341,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ```bash
 # Start here
-./scripts/quick-start-terraform.sh
+./scripts/setup/init-repository.sh
 ```
 
-For detailed instructions, see [TERRAFORM_DEPLOYMENT_GUIDE.md](TERRAFORM_DEPLOYMENT_GUIDE.md)
+For detailed instructions, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ---
 
 **Built with ❤️ by the DevOps Team**
 
-**Last Updated:** November 8, 2025  
+**Last Updated:** November 20, 2025  
 **Version:** 1.0.0

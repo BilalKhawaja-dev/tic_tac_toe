@@ -110,3 +110,22 @@ junit.xml
 # Documentation builds
 docs/_build/
 site/
+
+# Prevent status/summary markdown files
+*_STATUS.md
+*_SUMMARY.md
+*_COMPLETE.md
+*_SUCCESS.md
+*_FINAL.md
+SESSION_*.md
+HANDOFF_*.md
+START_HERE*.md
+DEPLOY_NOW.md
+READY_TO_START.md
+FIXING_*.md
+WHATS_BROKEN.md
+
+# Keep essential docs
+!README.md
+!NEXT_SESSION_SPEC_READY.md
+!REAL_GAMEPLAY_MISSING_FEATURES_ANALYSIS.md
